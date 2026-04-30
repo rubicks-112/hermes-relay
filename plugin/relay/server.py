@@ -98,7 +98,11 @@ class RelayServer:
         self.voice = VoiceHandler(config)
 
         # Channel handlers
-        self.chat = ChatHandler(webapi_url=config.webapi_url)
+        self.chat = ChatHandler(
+            api_url=config.webapi_url,
+            api_key=config.api_key,
+            model=config.model,
+        )
         self.terminal = TerminalHandler(default_shell=config.terminal_shell)
         self.bridge = BridgeHandler()
         self.tui = TuiHandler()

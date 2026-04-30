@@ -32,6 +32,8 @@ class RelayConfig:
     ssl_cert: str | None = None
     ssl_key: str | None = None
     webapi_url: str = "http://localhost:8642"
+    api_key: str | None = None
+    model: str = "kimi-k2.6"
     hermes_config_path: str = "~/.hermes/config.yaml"
     log_level: str = "INFO"
     profiles: list[dict[str, Any]] = field(default_factory=list)
@@ -82,6 +84,8 @@ class RelayConfig:
             ssl_cert=os.getenv("RELAY_SSL_CERT"),
             ssl_key=os.getenv("RELAY_SSL_KEY"),
             webapi_url=os.getenv("RELAY_WEBAPI_URL", cls.webapi_url),
+            api_key=os.getenv("RELAY_API_KEY", cls.api_key),
+            model=os.getenv("RELAY_MODEL", cls.model),
             hermes_config_path=os.getenv(
                 "RELAY_HERMES_CONFIG", cls.hermes_config_path
             ),

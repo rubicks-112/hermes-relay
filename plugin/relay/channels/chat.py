@@ -1,10 +1,13 @@
-"""Chat channel handler — proxies between phone (WSS) and Hermes WebAPI (SSE).
+"""Chat channel handler — proxies between phone (WSS) and Hermes OpenAI-compatible API.
 
-The core flow:
-  1. Phone sends ``chat.send`` with a message and optional profile/session_id
-  2. We create a session on WebAPI if needed
-  3. POST to ``/api/sessions/{id}/chat/stream`` — returns an SSE stream
-  4. Parse SSE events and re-emit as WebSocket envelopes to the phone
+Updated for Hermes Agent modern architecture (v2026.04+).
+The legacy WebAPI endpoints (/api/sessions/{id}/chat/stream) no longer exist.
+Hermes now exposes an OpenAI-compatible API at /v1/chat/completions on port 8642.
+
+This handler:
+  1. Maintains local session state (no server-side session creation needed)
+  2. POSTs to /v1/chat/completions with streaming enabled
+  3. Parses SSE deltas and re-emits as WebSocket envelopes to the phone
 """
 
 from __future__ import annotations
@@ -19,9 +22,7 @@ from aiohttp import web
 
 logger = logging.getLogger(__name__)
 
-# Mapping from Hermes WebAPI SSE event types to our envelope types.
-# The WebAPI may use different names than our protocol — this layer
-# absorbs that difference.
+# SSE event type mapping from OpenAI stream format to our envelope protocol
 _SSE_TYPE_MAP: dict[str, str] = {
     "content_delta": "chat.delta",
     "delta": "chat.delta",
@@ -55,19 +56,33 @@ def _make_envelope(
 class ChatHandler:
     """Handles all ``chat.*`` messages from the phone.
 
-    Uses an ``aiohttp.ClientSession`` to talk to the Hermes WebAPI.
+    Uses an ``aiohttp.ClientSession`` to talk to the Hermes OpenAI-compatible API.
     The HTTP session is created lazily and reused across requests.
     """
 
-    def __init__(self, webapi_url: str = "http://localhost:8642") -> None:
-        self._webapi_url = webapi_url.rstrip("/")
+    def __init__(
+        self,
+        api_url: str = "http://localhost:8642",
+        api_key: str | None = None,
+        model: str = "kimi-k2.6",
+    ) -> None:
+        self._api_url = api_url.rstrip("/")
+        self._api_key = api_key or "relay-local-dev"
+        self._model = model
         self._http: aiohttp.ClientSession | None = None
+        # Local session store: session_id -> {messages: [], profile: str}
+        self._sessions: dict[str, dict[str, Any]] = {}
 
     async def _get_http(self) -> aiohttp.ClientSession:
         """Return (and lazily create) the shared HTTP client session."""
         if self._http is None or self._http.closed:
+            headers = {
+                "Authorization": f"Bearer {self._api_key}",
+                "Content-Type": "application/json",
+            }
             self._http = aiohttp.ClientSession(
                 timeout=aiohttp.ClientTimeout(total=None, connect=10),
+                headers=headers,
             )
         return self._http
 
@@ -107,11 +122,10 @@ class ChatHandler:
         payload: dict[str, Any],
         msg_id: str | None,
     ) -> None:
-        """Process a chat.send message: create session if needed, then stream."""
+        """Process a chat.send message: maintain session locally, stream via OpenAI API."""
         profile = payload.get("profile", "default")
         session_id = payload.get("session_id")
         message = payload.get("message", "")
-        # attachments = payload.get("attachments", [])  # TODO: Phase 2+
 
         if not message:
             await ws.send_str(
@@ -125,17 +139,32 @@ class ChatHandler:
 
         http = await self._get_http()
 
-        # If no session_id provided, create a new session
+        # If no session_id provided, create a new local session
         if not session_id:
-            session_id = await self._create_session(ws, http, profile, msg_id)
+            session_id = await self._create_session(ws, profile, msg_id)
             if session_id is None:
                 return  # Error already sent
 
-        # POST to the streaming chat endpoint
-        url = f"{self._webapi_url}/api/sessions/{session_id}/chat/stream"
-        request_body: dict[str, Any] = {"message": message}
+        # Ensure session exists
+        if session_id not in self._sessions:
+            self._sessions[session_id] = {
+                "messages": [],
+                "profile": profile,
+                "title": message[:40] + "..." if len(message) > 40 else message,
+            }
 
-        # Include profile if the WebAPI supports it
+        session = self._sessions[session_id]
+        session["messages"].append({"role": "user", "content": message})
+
+        # Build OpenAI-compatible request
+        request_body: dict[str, Any] = {
+            "model": self._model,
+            "messages": session["messages"],
+            "stream": True,
+            "max_iterations": 90,
+        }
+
+        # Include profile if supported
         if profile and profile != "default":
             request_body["profile"] = profile
 
@@ -146,6 +175,8 @@ class ChatHandler:
             message[:80],
         )
 
+        url = f"{self._api_url}/v1/chat/completions"
+
         try:
             async with http.post(
                 url,
@@ -155,7 +186,7 @@ class ChatHandler:
                 if resp.status != 200:
                     body = await resp.text()
                     logger.error(
-                        "WebAPI returned %d for chat stream: %s",
+                        "API returned %d for chat stream: %s",
                         resp.status,
                         body[:200],
                     )
@@ -163,21 +194,30 @@ class ChatHandler:
                         _make_envelope(
                             "chat.error",
                             {
-                                "message": f"WebAPI error ({resp.status}): {body[:200]}"
+                                "message": f"API error ({resp.status}): {body[:200]}"
                             },
                             msg_id,
                         )
                     )
                     return
 
-                await self._consume_sse_stream(ws, resp, session_id, msg_id)
+                # Consume SSE stream and build assistant message
+                assistant_content = await self._consume_sse_stream(
+                    ws, resp, session_id, msg_id
+                )
+
+                # Store assistant response in session history
+                if assistant_content:
+                    session["messages"].append(
+                        {"role": "assistant", "content": assistant_content}
+                    )
 
         except aiohttp.ClientError as exc:
-            logger.error("HTTP error talking to WebAPI: %s", exc)
+            logger.error("HTTP error talking to API: %s", exc)
             await ws.send_str(
                 _make_envelope(
                     "chat.error",
-                    {"message": f"Cannot reach Hermes WebAPI: {exc}"},
+                    {"message": f"Cannot reach Hermes API: {exc}"},
                     msg_id,
                 )
             )
@@ -187,49 +227,17 @@ class ChatHandler:
     async def _create_session(
         self,
         ws: web.WebSocketResponse,
-        http: aiohttp.ClientSession,
         profile: str,
         msg_id: str | None,
     ) -> str | None:
-        """Create a new chat session via the WebAPI. Returns session_id or None."""
-        url = f"{self._webapi_url}/api/sessions"
-        body: dict[str, Any] = {}
-        if profile and profile != "default":
-            body["profile"] = profile
-
-        try:
-            async with http.post(url, json=body) as resp:
-                if resp.status not in (200, 201):
-                    text = await resp.text()
-                    logger.error(
-                        "Failed to create session (HTTP %d): %s",
-                        resp.status,
-                        text[:200],
-                    )
-                    await ws.send_str(
-                        _make_envelope(
-                            "chat.error",
-                            {"message": f"Failed to create session: {text[:200]}"},
-                            msg_id,
-                        )
-                    )
-                    return None
-
-                data = await resp.json()
-                session_id = data.get("id") or data.get("session_id", "")
-                title = data.get("title", "New chat")
-                model = data.get("model", "unknown")
-
-        except aiohttp.ClientError as exc:
-            logger.error("HTTP error creating session: %s", exc)
-            await ws.send_str(
-                _make_envelope(
-                    "chat.error",
-                    {"message": f"Cannot reach Hermes WebAPI: {exc}"},
-                    msg_id,
-                )
-            )
-            return None
+        """Create a new local chat session. Returns session_id or None."""
+        session_id = str(uuid.uuid4())
+        self._sessions[session_id] = {
+            "messages": [],
+            "profile": profile,
+            "title": "New chat",
+            "model": self._model,
+        }
 
         # Notify the phone of the new session
         await ws.send_str(
@@ -237,13 +245,13 @@ class ChatHandler:
                 "chat.session",
                 {
                     "session_id": session_id,
-                    "title": title,
-                    "model": model,
+                    "title": "New chat",
+                    "model": self._model,
                 },
                 msg_id,
             )
         )
-        logger.info("Created session %s (title=%s)", session_id, title)
+        logger.info("Created local session %s (profile=%s)", session_id, profile)
         return session_id
 
     # ── SSE stream consumer ──────────────────────────────────────────────
@@ -254,20 +262,21 @@ class ChatHandler:
         resp: aiohttp.ClientResponse,
         session_id: str,
         msg_id: str | None,
-    ) -> None:
-        """Read an SSE stream from the WebAPI and forward events to the phone.
+    ) -> str:
+        """Read an SSE stream from the OpenAI API and forward events to the phone.
 
+        Returns the full assistant content accumulated from deltas.
         SSE format: lines of ``data: {...}\\n\\n`` with optional ``event:`` lines.
-        We parse manually to avoid adding a heavy SSE client dependency.
         """
-        # Buffer for incomplete lines across chunk boundaries
         buffer = ""
         current_event_type: str | None = None
+        assistant_content = ""
+        tool_calls: list[dict[str, Any]] = []
 
         async for chunk_bytes in resp.content.iter_any():
             if ws.closed:
                 logger.info("WebSocket closed — stopping SSE consumption")
-                return
+                return assistant_content
 
             chunk = chunk_bytes.decode("utf-8", errors="replace")
             buffer += chunk
@@ -278,7 +287,6 @@ class ChatHandler:
                 line = line.rstrip("\r")
 
                 if not line:
-                    # Empty line = end of SSE event — reset event type
                     current_event_type = None
                     continue
 
@@ -290,16 +298,22 @@ class ChatHandler:
                     data_str = line[len("data:"):].strip()
                     if not data_str:
                         continue
-                    await self._emit_sse_event(
+                    if data_str == "[DONE]":
+                        continue
+
+                    content_delta = await self._emit_sse_event(
                         ws, data_str, session_id, msg_id, current_event_type
                     )
+                    if content_delta:
+                        assistant_content += content_delta
                     continue
 
-                # Ignore comment lines (starting with :) and unknown prefixes
                 if line.startswith(":"):
                     continue
 
                 logger.debug("Ignoring unknown SSE line: %s", line[:100])
+
+        return assistant_content
 
     async def _emit_sse_event(
         self,
@@ -308,85 +322,83 @@ class ChatHandler:
         session_id: str,
         msg_id: str | None,
         sse_event_type: str | None,
-    ) -> None:
-        """Parse a single SSE ``data:`` value and send the corresponding WS envelope."""
+    ) -> str | None:
+        """Parse a single SSE ``data:`` value and send the corresponding WS envelope.
+
+        Returns any content delta for accumulation into the assistant message.
+        """
         try:
             data = json.loads(data_str)
         except json.JSONDecodeError:
-            # Some events may be plain text (e.g. "[DONE]")
-            if data_str.strip() == "[DONE]":
-                return
             logger.debug("Non-JSON SSE data: %s", data_str[:100])
-            return
+            return None
 
-        # Determine the Hermes SSE event type. Try:
-        # 1. The explicit ``event:`` line from SSE
-        # 2. A ``type`` field inside the JSON data
-        raw_type = sse_event_type or data.get("type", "")
+        # OpenAI streaming format:
+        # data: {"choices": [{"delta": {"content": "..."}, "finish_reason": null}]}
+        choices = data.get("choices", [])
+        if not choices:
+            return None
 
-        # Map to our protocol type
-        proto_type = _SSE_TYPE_MAP.get(raw_type)
+        choice = choices[0]
+        delta = choice.get("delta", {})
+        finish_reason = choice.get("finish_reason")
 
-        if proto_type is None:
-            # If we don't recognize the type, log it and skip
-            logger.debug(
-                "Unmapped SSE event type %r — forwarding raw data", raw_type
-            )
-            return
+        # Extract content delta
+        content = delta.get("content", "")
+        if content:
+            try:
+                await ws.send_str(
+                    _make_envelope(
+                        "chat.delta",
+                        {
+                            "session_id": session_id,
+                            "delta": content,
+                        },
+                        msg_id,
+                    )
+                )
+            except ConnectionResetError:
+                logger.warning("WebSocket closed while sending delta")
+                return content
+            return content
 
-        # Build payload based on event type
-        payload = self._build_payload(proto_type, data, session_id)
+        # Handle tool calls
+        tool_call_delta = delta.get("tool_calls")
+        if tool_call_delta:
+            # Forward tool call start
+            for tc in tool_call_delta:
+                if tc.get("id") and tc.get("function", {}).get("name"):
+                    try:
+                        await ws.send_str(
+                            _make_envelope(
+                                "chat.tool.started",
+                                {
+                                    "tool_name": tc["function"]["name"],
+                                    "args": tc["function"].get("arguments", {}),
+                                },
+                                msg_id,
+                            )
+                        )
+                    except ConnectionResetError:
+                        logger.warning("WebSocket closed while sending tool start")
 
-        try:
-            await ws.send_str(_make_envelope(proto_type, payload, msg_id))
-        except ConnectionResetError:
-            logger.warning("WebSocket closed while sending %s", proto_type)
+        # Handle completion
+        if finish_reason is not None:
+            try:
+                await ws.send_str(
+                    _make_envelope(
+                        "chat.completed",
+                        {
+                            "session_id": session_id,
+                            "finish_reason": finish_reason,
+                        },
+                        msg_id,
+                    )
+                )
+            except ConnectionResetError:
+                logger.warning("WebSocket closed while sending completion")
 
-    @staticmethod
-    def _build_payload(
-        proto_type: str,
-        data: dict[str, Any],
-        session_id: str,
-    ) -> dict[str, Any]:
-        """Extract the relevant fields from SSE data into our protocol payload."""
-        if proto_type == "chat.delta":
-            return {
-                "session_id": session_id,
-                "message_id": data.get("message_id", data.get("id", "")),
-                "delta": data.get("delta", data.get("content", "")),
-            }
-
-        if proto_type == "chat.tool.started":
-            return {
-                "tool_name": data.get("tool_name", data.get("name", "")),
-                "preview": data.get("preview", ""),
-                "args": data.get("args", data.get("arguments", {})),
-            }
-
-        if proto_type == "chat.tool.completed":
-            return {
-                "tool_name": data.get("tool_name", data.get("name", "")),
-                "result_preview": data.get(
-                    "result_preview", data.get("result", "")
-                ),
-                "success": data.get("success", True),
-            }
-
-        if proto_type == "chat.completed":
-            return {
-                "session_id": session_id,
-                "message_id": data.get("message_id", data.get("id", "")),
-                "content": data.get("content", ""),
-                "api_calls": data.get("api_calls", 0),
-            }
-
-        if proto_type == "chat.error":
-            return {
-                "message": data.get("message", data.get("error", "Unknown error")),
-            }
-
-        # Fallback — return the raw data
-        return data
+        return None
 
     # ── chat.sessions.list ───────────────────────────────────────────────
 
@@ -396,47 +408,25 @@ class ChatHandler:
         payload: dict[str, Any],
         msg_id: str | None,
     ) -> None:
-        """Fetch session list from WebAPI and forward to the phone."""
-        http = await self._get_http()
-        url = f"{self._webapi_url}/api/sessions"
-        params: dict[str, str] = {}
+        """Return local session list to the phone."""
         profile = payload.get("profile")
-        if profile:
-            params["profile"] = profile
 
-        try:
-            async with http.get(url, params=params) as resp:
-                if resp.status != 200:
-                    body = await resp.text()
-                    logger.error(
-                        "WebAPI returned %d for sessions list: %s",
-                        resp.status,
-                        body[:200],
-                    )
-                    await ws.send_str(
-                        _make_envelope(
-                            "chat.error",
-                            {"message": f"Failed to list sessions: {body[:200]}"},
-                            msg_id,
-                        )
-                    )
-                    return
-
-                data = await resp.json()
-
-        except aiohttp.ClientError as exc:
-            logger.error("HTTP error listing sessions: %s", exc)
-            await ws.send_str(
-                _make_envelope(
-                    "chat.error",
-                    {"message": f"Cannot reach Hermes WebAPI: {exc}"},
-                    msg_id,
-                )
+        sessions = []
+        for sid, sess in self._sessions.items():
+            if profile and sess.get("profile") != profile:
+                continue
+            sessions.append(
+                {
+                    "id": sid,
+                    "title": sess.get("title", "Untitled"),
+                    "model": sess.get("model", self._model),
+                    "profile": sess.get("profile", "default"),
+                    "message_count": len(sess.get("messages", [])),
+                }
             )
-            return
 
-        # The WebAPI may return sessions under different keys
-        sessions = data if isinstance(data, list) else data.get("sessions", [])
+        # Sort by most recently used (we don't track timestamps, so just reverse)
+        sessions.reverse()
 
         await ws.send_str(
             _make_envelope(
