@@ -195,6 +195,20 @@ else
 fi
 
 # ── Helpers ────────────────────────────────────────────────────────────────
+# Detect whether to use pip or uv for package operations in the venv.
+# Sets global PIP_CMD and PIP_SHOW to callable commands.
+_detect_pip_or_uv() {
+    if "$VENV_PY" -m pip --version >/dev/null 2>&1; then
+        PIP_CMD="$VENV_PY -m pip"
+        PIP_SHOW="$VENV_PY -m pip show"
+    elif command -v uv >/dev/null 2>&1; then
+        PIP_CMD="uv pip --python $VENV_PY"
+        PIP_SHOW="uv pip show --python $VENV_PY"
+    else
+        die "Neither pip nor uv found — cannot install packages into the venv"
+    fi
+}
+
 die()  { printf "  ${C_RED}${C_BOLD}%s${C_RESET} %s\n" "$SYM_ERR" "$*" >&2; exit 1; }
 info() { printf "    ${C_DIM}%s${C_RESET} %s\n" "$SYM_INFO" "$*"; }
 ok()   { printf "    ${C_GREEN}%s${C_RESET} %s\n" "$SYM_OK" "$*"; }
@@ -300,16 +314,16 @@ fi
 
 # ── 2/6  Install Python package editable into the hermes venv ──────────────
 step 2 6 "Installing plugin into hermes venv (editable)"
-"$VENV_PY" -m pip install --quiet --upgrade pip >/dev/null 2>&1 || true
+_detect_pip_or_uv
 # Run the long pip install in the background and spin while we wait — keeps
 # the user oriented during the 5-30s install. spin() falls back to a silent
 # wait when stdout isn't a TTY (curl | bash) so log capture stays clean.
 (
-    "$VENV_PY" -m pip install --quiet -e "$RELAY_HOME" >/dev/null 2>&1
+    $PIP_CMD install --quiet -e "$RELAY_HOME" >/dev/null 2>&1
 ) &
 spin $! "pip install -e $(basename "$RELAY_HOME")" \
     || die "pip install -e $RELAY_HOME failed"
-ok "Installed $("$VENV_PY" -m pip show hermes-relay 2>/dev/null | awk '/^Name:/{n=$2}/^Version:/{print n" "$2}')"
+ok "Installed $($PIP_SHOW hermes-relay 2>/dev/null | awk '/^Name:/{n=$2}/^Version:/{print n" "$2}')"
 
 # Drop the bootstrap .pth into the venv's site-packages so Python loads
 # `hermes_relay_bootstrap` at interpreter startup. This is what allows the

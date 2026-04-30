@@ -79,6 +79,21 @@ SERVICE_DST="$SYSTEMD_USER_DIR/hermes-relay.service"
 PTH_NAME="hermes_relay_bootstrap.pth"
 
 # ── Helpers ────────────────────────────────────────────────────────────────
+# Detect whether to use pip or uv for package operations in the venv.
+_detect_pip_or_uv() {
+    if "$VENV_PY" -m pip --version >/dev/null 2>&1; then
+        PIP_CMD="$VENV_PY -m pip"
+        PIP_SHOW="$VENV_PY -m pip show"
+    elif command -v uv >/dev/null 2>&1; then
+        PIP_CMD="uv pip --python $VENV_PY"
+        PIP_SHOW="uv pip show --python $VENV_PY"
+    else
+        echo "  [skip] Neither pip nor uv found — skipping package operations" >&2
+        PIP_CMD=""
+        PIP_SHOW=""
+    fi
+}
+
 info() { echo "  $*"; }
 ok()   { echo "  [ok] $*"; }
 warn() { echo "  [skip] $*"; }
@@ -284,6 +299,7 @@ fi
 # ── 2/6  Remove bootstrap .pth + pip package ───────────────────────────────
 info "[2/6] Removing bootstrap .pth + pip package..."
 
+_detect_pip_or_uv
 if [ -x "$VENV_PY" ]; then
     SITE_PKGS="$("$VENV_PY" -c 'import site; print(site.getsitepackages()[0])' 2>/dev/null || true)"
     if [ -n "$SITE_PKGS" ] && [ -f "$SITE_PKGS/$PTH_NAME" ]; then
@@ -293,8 +309,8 @@ if [ -x "$VENV_PY" ]; then
         warn "$PTH_NAME not present in venv site-packages"
     fi
 
-    if "$VENV_PY" -m pip show hermes-relay >/dev/null 2>&1; then
-        run "\"$VENV_PY\" -m pip uninstall --quiet --yes hermes-relay >/dev/null 2>&1 || true"
+    if [ -n "$PIP_SHOW" ] && $PIP_SHOW hermes-relay >/dev/null 2>&1; then
+        run "$PIP_CMD uninstall --quiet --yes hermes-relay >/dev/null 2>&1 || true"
         ok "pip uninstall hermes-relay"
     else
         warn "hermes-relay pip package was not installed"

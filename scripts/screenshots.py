@@ -30,9 +30,16 @@ try:
     from rich.text import Text
 except ImportError:
     print("Installing 'rich' (one-time setup)...", flush=True)
-    subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", "--quiet", "rich"]
-    )
+    import shutil
+    uv_bin = shutil.which("uv")
+    if uv_bin:
+        subprocess.check_call(
+            [uv_bin, "pip", "install", "--python", sys.executable, "rich"]
+        )
+    else:
+        subprocess.check_call(
+            [sys.executable, "-m", "pip", "install", "--quiet", "rich"]
+        )
     from rich.console import Console
     from rich.markup import escape
     from rich.panel import Panel

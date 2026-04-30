@@ -849,27 +849,5 @@ _RELAY_ONLY_TOOLS: frozenset[str] = frozenset({"desktop_health"})
 
 
 # ── Registry registration ──────────────────────────────────────────────────────
-
-
-try:
-    from tools.registry import registry
-
-    for tool_name, schema in _SCHEMAS.items():
-        # Per-tool check_fn closure — captures the tool name so the ping
-        # can query availability per-tool instead of all-or-nothing.
-        def _make_check(name: str):
-            if name in _RELAY_ONLY_TOOLS:
-                return lambda: _check_relay()
-            return lambda: _check_tool(name)
-
-        registry.register(
-            name=tool_name,
-            toolset="desktop",
-            schema=schema,
-            handler=_HANDLERS[tool_name],
-            check_fn=_make_check(tool_name),
-            requires_env=[],  # DESKTOP_RELAY_URL has a default.
-        )
-except ImportError:
-    # Running outside hermes-agent context (e.g. smoke tests).
-    pass
+# Registration is handled by plugin/__init__.py via ctx.register_tool().
+# Do NOT self-register here — it causes double-registration.
