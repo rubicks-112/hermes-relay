@@ -80,15 +80,10 @@ fun ThinkingBlock(
                 enter = expandVertically(),
                 exit = shrinkVertically()
             ) {
-                Text(
-                    text = thinkingContent,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontFamily = FontFamily.Default,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    modifier = Modifier.padding(top = 4.dp),
-                    maxLines = if (isStreaming) Int.MAX_VALUE else 50,
-                    overflow = TextOverflow.Ellipsis
+                MarkdownContent(
+                    content = thinkingContent,
+                    textColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }

@@ -319,6 +319,7 @@ fun ChatScreen(
     )
 
     var inputText by remember { mutableStateOf("") }
+    var autocompleteDismissed by remember { mutableStateOf(false) }
     val inputFocusRequester = remember { FocusRequester() }
     var showCommandPalette by remember { mutableStateOf(false) }
     var showAgentInfo by remember { mutableStateOf(false) }
@@ -336,6 +337,14 @@ fun ChatScreen(
         }
     }
     val listState = rememberLazyListState()
+
+    // Reset scroll to bottom when switching sessions so the user lands on
+    // the latest message instead of inheriting the previous session's offset.
+    LaunchedEffect(currentSessionId) {
+        if (messages.isNotEmpty()) {
+            listState.scrollToItem(messages.size - 1, Int.MAX_VALUE)
+        }
+    }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboard.current
@@ -481,9 +490,9 @@ fun ChatScreen(
             }
         }
     }
-    val showAutocomplete by remember(filteredCommands, inputText) {
+    val showAutocomplete by remember(filteredCommands, inputText, autocompleteDismissed) {
         derivedStateOf {
-            inputText.startsWith("/") && filteredCommands.isNotEmpty()
+            !autocompleteDismissed && inputText.startsWith("/") && filteredCommands.isNotEmpty()
         }
     }
 
@@ -1056,7 +1065,7 @@ fun ChatScreen(
                         ) {
                             suggestions.forEach { suggestion ->
                                 AssistChip(
-                                    onClick = { inputText = suggestion },
+                                    onClick = { chatViewModel.sendMessage(suggestion) },
                                     label = {
                                         Text(
                                             text = suggestion,
@@ -1108,6 +1117,14 @@ fun ChatScreen(
                             .padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
+                        item {
+                            TextButton(
+                                onClick = { /* chatViewModel.loadOlderMessages() */ },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Load more")
+                            }
+                        }
                         item { Spacer(modifier = Modifier.height(8.dp).animateItem()) }
 
                         items(visibleMessages.size, key = { visibleMessages[it].id }) { index ->
@@ -1121,65 +1138,67 @@ fun ChatScreen(
                                 DateSeparator(timestamp = message.timestamp)
                             }
 
-                            MessageBubble(
-                                message = message,
-                                modifier = Modifier
-                                    .padding(top = if (isFirstInGroup) 6.dp else 1.dp)
-                                    .animateItem(),
-                                maxBubbleWidth = maxBubbleWidth,
-                                showThinking = showThinking,
-                                isFirstInGroup = isFirstInGroup,
-                                isLastInGroup = isLastInGroup,
-                                onAttachmentRetry = { msgId, idx ->
-                                    chatViewModel.manualFetchAttachment(msgId, idx)
-                                },
-                                onAttachmentManualFetch = { msgId, idx ->
-                                    chatViewModel.manualFetchAttachment(msgId, idx)
-                                },
-                                onCardAction = { msgId, cardKey, action ->
-                                    // OPEN_URL is resolved at the UI layer
-                                    // because launching ACTION_VIEW needs a
-                                    // Context. We record the dispatch FIRST
-                                    // via the ViewModel so the card collapses
-                                    // even if the browser launch throws.
-                                    if (action.mode == com.hermesandroid.relay.data.HermesCardAction.Modes.OPEN_URL) {
-                                        chatViewModel.dispatchCardAction(msgId, cardKey, action)
-                                        com.hermesandroid.relay.ui.components.handleCardActionExternally(
-                                            context, action
-                                        )
-                                    } else {
-                                        chatViewModel.dispatchCardAction(msgId, cardKey, action)
-                                    }
-                                },
-                                onCopyMessage = { text ->
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    // The new Clipboard API is suspend-based, so the
-                                    // setClipEntry call has to live inside a coroutine.
-                                    // We piggyback on the same scope.launch that posts
-                                    // the snackbar — they are sequential anyway.
-                                    scope.launch {
-                                        clipboard.setClipEntry(
-                                            ClipEntry(
-                                                ClipData.newPlainText(
-                                                    "Hermes message",
-                                                    text
+                            Column {
+                                MessageBubble(
+                                    message = message,
+                                    modifier = Modifier
+                                        .padding(top = if (isFirstInGroup) 6.dp else 1.dp)
+                                        .animateItem(),
+                                    maxBubbleWidth = maxBubbleWidth,
+                                    showThinking = showThinking,
+                                    isFirstInGroup = isFirstInGroup,
+                                    isLastInGroup = isLastInGroup,
+                                    onAttachmentRetry = { msgId, idx ->
+                                        chatViewModel.manualFetchAttachment(msgId, idx)
+                                    },
+                                    onAttachmentManualFetch = { msgId, idx ->
+                                        chatViewModel.manualFetchAttachment(msgId, idx)
+                                    },
+                                    onCardAction = { msgId, cardKey, action ->
+                                        // OPEN_URL is resolved at the UI layer
+                                        // because launching ACTION_VIEW needs a
+                                        // Context. We record the dispatch FIRST
+                                        // via the ViewModel so the card collapses
+                                        // even if the browser launch throws.
+                                        if (action.mode == com.hermesandroid.relay.data.HermesCardAction.Modes.OPEN_URL) {
+                                            chatViewModel.dispatchCardAction(msgId, cardKey, action)
+                                            com.hermesandroid.relay.ui.components.handleCardActionExternally(
+                                                context, action
+                                            )
+                                        } else {
+                                            chatViewModel.dispatchCardAction(msgId, cardKey, action)
+                                        }
+                                    },
+                                    onCopyMessage = { text ->
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        // The new Clipboard API is suspend-based, so the
+                                        // setClipEntry call has to live inside a coroutine.
+                                        // We piggyback on the same scope.launch that posts
+                                        // the snackbar — they are sequential anyway.
+                                        scope.launch {
+                                            clipboard.setClipEntry(
+                                                ClipEntry(
+                                                    ClipData.newPlainText(
+                                                        "Hermes message",
+                                                        text
+                                                    )
                                                 )
                                             )
-                                        )
-                                        snackbarHostState.showSnackbar(
-                                            message = "Copied to clipboard",
-                                            duration = SnackbarDuration.Short
-                                        )
+                                            snackbarHostState.showSnackbar(
+                                                message = "Copied to clipboard",
+                                                duration = SnackbarDuration.Short
+                                            )
+                                        }
                                     }
-                                }
-                            )
-
-                            if (toolDisplay != "off") {
-                                message.toolCalls.forEach { toolCall ->
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    when (toolDisplay) {
-                                        "compact" -> CompactToolCall(toolCall = toolCall)
-                                        else -> ToolProgressCard(toolCall = toolCall)
+                                )
+    
+                                if (toolDisplay != "off") {
+                                    message.toolCalls.forEach { toolCall ->
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        when (toolDisplay) {
+                                            "compact" -> CompactToolCall(toolCall = toolCall)
+                                            else -> ToolProgressCard(toolCall = toolCall)
+                                        }
                                     }
                                 }
                             }
@@ -1245,272 +1264,290 @@ fun ChatScreen(
                 }
             }
 
-            // Inline slash command autocomplete
-            AnimatedVisibility(visible = showAutocomplete) {
-                InlineAutocomplete(
-                    commands = filteredCommands,
-                    onSelect = { cmd ->
-                        val base = cmd.command.split(" ").first()
-                        inputText = if (cmd.command.contains(" ")) cmd.command + " " else "$base "
-                    },
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-            }
-
-            // Queue indicator
-            AnimatedVisibility(visible = queuedMessages.isNotEmpty()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "${queuedMessages.size} message${if (queuedMessages.size > 1) "s" else ""} queued",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    TextButton(
-                        onClick = { chatViewModel.clearQueue() },
-                        modifier = Modifier.height(28.dp)
+            // Inline slash command autocomplete + input area wrapper with
+            // transparent tap-outside-to-dismiss overlay.
+            Box(modifier = Modifier.fillMaxWidth()) {
+                // Queue indicator
+                androidx.compose.animation.AnimatedVisibility(visible = queuedMessages.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            "Clear",
-                            style = MaterialTheme.typography.labelSmall
+                            text = "${queuedMessages.size} message${if (queuedMessages.size > 1) "s" else ""} queued",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
                         )
+                        TextButton(
+                            onClick = { chatViewModel.clearQueue() },
+                            modifier = Modifier.height(28.dp)
+                        ) {
+                            Text(
+                                "Clear",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
                     }
                 }
-            }
-
-            // Attachment preview strip
-            AnimatedVisibility(visible = pendingAttachments.isNotEmpty()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    pendingAttachments.forEachIndexed { index, attachment ->
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            tonalElevation = 2.dp,
-                            modifier = Modifier.height(56.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(start = 8.dp, end = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+    
+                // Attachment preview strip
+                androidx.compose.animation.AnimatedVisibility(visible = pendingAttachments.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        pendingAttachments.forEachIndexed { index, attachment ->
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                tonalElevation = 2.dp,
+                                modifier = Modifier.height(56.dp)
                             ) {
-                                if (attachment.isImage) {
-                                    // Decode and show thumbnail
-                                    val bitmap = remember(attachment.content) {
-                                        try {
-                                            val bytes = Base64.decode(attachment.content, Base64.DEFAULT)
-                                            android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                                        } catch (_: Exception) { null }
-                                    }
-                                    if (bitmap != null) {
-                                        val imageBitmap = remember(bitmap) {
-                                            bitmap.asImageBitmap()
+                                Row(
+                                    modifier = Modifier.padding(start = 8.dp, end = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    if (attachment.isImage) {
+                                        // Decode and show thumbnail
+                                        val bitmap = remember(attachment.content) {
+                                            try {
+                                                val bytes = Base64.decode(attachment.content, Base64.NO_WRAP)
+                                                android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                                            } catch (_: Exception) { null }
                                         }
-                                        Image(
-                                            bitmap = imageBitmap,
-                                            contentDescription = attachment.fileName,
-                                            modifier = Modifier
-                                                .size(40.dp)
-                                                .clip(RoundedCornerShape(4.dp))
-                                        )
+                                        if (bitmap != null) {
+                                            val imageBitmap = remember(bitmap) {
+                                                bitmap.asImageBitmap()
+                                            }
+                                            Image(
+                                                bitmap = imageBitmap,
+                                                contentDescription = attachment.fileName,
+                                                modifier = Modifier
+                                                    .size(40.dp)
+                                                    .clip(RoundedCornerShape(4.dp))
+                                            )
+                                        } else {
+                                            Icon(Icons.Filled.Description, contentDescription = null, modifier = Modifier.size(24.dp))
+                                        }
                                     } else {
                                         Icon(Icons.Filled.Description, contentDescription = null, modifier = Modifier.size(24.dp))
                                     }
-                                } else {
-                                    Icon(Icons.Filled.Description, contentDescription = null, modifier = Modifier.size(24.dp))
-                                }
-                                Column(modifier = Modifier.widthIn(max = 100.dp)) {
-                                    Text(
-                                        text = attachment.fileName ?: "File",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        maxLines = 1,
-                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                    )
-                                    Text(
-                                        text = formatFileSize(attachment.fileSize ?: 0),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                IconButton(
-                                    onClick = { chatViewModel.removeAttachment(index) },
-                                    modifier = Modifier.size(24.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Filled.Close,
-                                        contentDescription = "Remove",
-                                        modifier = Modifier.size(16.dp)
-                                    )
+                                    Column(modifier = Modifier.widthIn(max = 100.dp)) {
+                                        Text(
+                                            text = attachment.fileName ?: "File",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = formatFileSize(attachment.fileSize ?: 0),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = { chatViewModel.removeAttachment(index) },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Filled.Close,
+                                            contentDescription = "Remove",
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-
-            // Input bar with character limit
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.Bottom
-            ) {
-                // Attach file button
-                IconButton(
-                    onClick = { filePickerLauncher.launch(arrayOf("*/*")) },
-                    modifier = Modifier.padding(bottom = 4.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Add,
-                        contentDescription = "Attach file",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                // Command palette button
-                IconButton(
-                    onClick = { showCommandPalette = true },
-                    modifier = Modifier.padding(bottom = 4.dp)
-                ) {
-                    Text(
-                        text = "/",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                OutlinedTextField(
-                    value = inputText,
-                    onValueChange = { if (it.length <= charLimit) inputText = it },
+    
+                // Input bar with character limit
+                Row(
                     modifier = Modifier
-                        .weight(1f)
-                        .focusRequester(inputFocusRequester),
-                    placeholder = {
-                        Text(if (isStreaming && inputText.isBlank()) "Queue a message..." else "Message...")
-                    },
-                    maxLines = 4,
-                    enabled = chatReady,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions(
-                        onSend = {
-                            if (inputText.isNotBlank() || pendingAttachments.isNotEmpty()) {
-                                chatViewModel.sendMessage(inputText.ifBlank { "[attachment]" })
-                                inputText = ""
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    // Attach file button
+                    IconButton(
+                        onClick = { filePickerLauncher.launch(arrayOf("*/*")) },
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Add,
+                            contentDescription = "Attach file",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+    
+                    // Command palette button
+                    IconButton(
+                        onClick = { showCommandPalette = true },
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    ) {
+                        Text(
+                            text = "/",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+    
+                    OutlinedTextField(
+                        value = inputText,
+                        onValueChange = {
+                            autocompleteDismissed = false
+                            if (it.length <= charLimit) inputText = it
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .focusRequester(inputFocusRequester),
+                        placeholder = {
+                            Text(if (isStreaming && inputText.isBlank()) "Queue a message..." else "Message...")
+                        },
+                        maxLines = 4,
+                        enabled = chatReady,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                        keyboardActions = KeyboardActions(
+                            onSend = {
+                                if (inputText.isNotBlank() || pendingAttachments.isNotEmpty()) {
+                                    chatViewModel.sendMessage(inputText.ifBlank { "[attachment]" })
+                                    inputText = ""
+                                }
+                            }
+                        ),
+                        supportingText = if (inputText.length > charLimit - 200) {
+                            {
+                                Text(
+                                    "${inputText.length}/$charLimit",
+                                    color = if (inputText.length >= charLimit) {
+                                        MaterialTheme.colorScheme.error
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    }
+                                )
+                            }
+                        } else null
+                    )
+    
+                    // Stop button — visible during streaming
+                    AnimatedVisibility(visible = isStreaming) {
+                        IconButton(onClick = { chatViewModel.cancelStream() }) {
+                            Icon(
+                                imageVector = Icons.Filled.Stop,
+                                contentDescription = "Stop streaming",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+    
+                    // Trailing button — smart-swap between mic and send.
+                    // Empty input → Mic (taps into voice mode overlay).
+                    // Any typed text or attachment → Send (morph into send arrow,
+                    // queues during streaming). Stop button during streaming is a
+                    // separate IconButton above this one; both can coexist since
+                    // they have distinct semantics.
+                    val hasContent = inputText.isNotBlank() || pendingAttachments.isNotEmpty()
+                    val sendEnabled = hasContent && chatReady
+                    Box(
+                        modifier = if (sendEnabled && isDarkTheme && !isStreaming) {
+                            Modifier.purpleGlow(
+                                radius = 24.dp,
+                                alpha = 0.35f,
+                                isDarkTheme = true
+                            )
+                        } else Modifier
+                    ) {
+                        if (hasContent) {
+                            IconButton(
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    chatViewModel.sendMessage(inputText.ifBlank { "[attachment]" })
+                                    inputText = ""
+                                    inputFocusRequester.requestFocus()
+                                },
+                                enabled = sendEnabled
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Send,
+                                    contentDescription = if (isStreaming) "Queue message" else "Send message",
+                                    tint = if (sendEnabled) {
+                                        if (isStreaming) MaterialTheme.colorScheme.tertiary
+                                        else MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    }
+                                )
+                            }
+                        } else {
+                            // Gate on relayReady — voice mode calls
+                            // /voice/transcribe and /voice/synthesize which
+                            // only exist on the relay. Muted tint + toast on
+                            // tap mirrors Terminal's "relay disconnected"
+                            // subtitle pattern: we surface the dependency
+                            // at the button, not after the user has already
+                            // recorded an utterance.
+                            IconButton(
+                                onClick = {
+                                    if (relayReady) {
+                                        requestVoiceMode()
+                                    } else {
+                                        android.widget.Toast.makeText(
+                                            context,
+                                            "Voice mode needs a relay connection",
+                                            android.widget.Toast.LENGTH_SHORT,
+                                        ).show()
+                                    }
+                                },
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Mic,
+                                    contentDescription = if (relayReady) {
+                                        "Voice mode"
+                                    } else {
+                                        "Voice mode (relay disconnected)"
+                                    },
+                                    tint = if (relayReady) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                            .copy(alpha = 0.5f)
+                                    },
+                                )
                             }
                         }
-                    ),
-                    supportingText = if (inputText.length > charLimit - 200) {
-                        {
-                            Text(
-                                "${inputText.length}/$charLimit",
-                                color = if (inputText.length >= charLimit) {
-                                    MaterialTheme.colorScheme.error
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                }
-                            )
-                        }
-                    } else null
-                )
-
-                // Stop button — visible during streaming
-                AnimatedVisibility(visible = isStreaming) {
-                    IconButton(onClick = { chatViewModel.cancelStream() }) {
-                        Icon(
-                            imageVector = Icons.Filled.Stop,
-                            contentDescription = "Stop streaming",
-                            tint = MaterialTheme.colorScheme.error
-                        )
                     }
                 }
+                if (showAutocomplete) {
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clickable { autocompleteDismissed = true }
+                    )
+                }
 
-                // Trailing button — smart-swap between mic and send.
-                // Empty input → Mic (taps into voice mode overlay).
-                // Any typed text or attachment → Send (morph into send arrow,
-                // queues during streaming). Stop button during streaming is a
-                // separate IconButton above this one; both can coexist since
-                // they have distinct semantics.
-                val hasContent = inputText.isNotBlank() || pendingAttachments.isNotEmpty()
-                val sendEnabled = hasContent && chatReady
-                Box(
-                    modifier = if (sendEnabled && isDarkTheme && !isStreaming) {
-                        Modifier.purpleGlow(
-                            radius = 24.dp,
-                            alpha = 0.35f,
-                            isDarkTheme = true
-                        )
-                    } else Modifier
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showAutocomplete,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(horizontal = 16.dp)
                 ) {
-                    if (hasContent) {
-                        IconButton(
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                chatViewModel.sendMessage(inputText.ifBlank { "[attachment]" })
-                                inputText = ""
-                                inputFocusRequester.requestFocus()
-                            },
-                            enabled = sendEnabled
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Send,
-                                contentDescription = if (isStreaming) "Queue message" else "Send message",
-                                tint = if (sendEnabled) {
-                                    if (isStreaming) MaterialTheme.colorScheme.tertiary
-                                    else MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                }
-                            )
-                        }
-                    } else {
-                        // Gate on relayReady — voice mode calls
-                        // /voice/transcribe and /voice/synthesize which
-                        // only exist on the relay. Muted tint + toast on
-                        // tap mirrors Terminal's "relay disconnected"
-                        // subtitle pattern: we surface the dependency
-                        // at the button, not after the user has already
-                        // recorded an utterance.
-                        IconButton(
-                            onClick = {
-                                if (relayReady) {
-                                    requestVoiceMode()
-                                } else {
-                                    android.widget.Toast.makeText(
-                                        context,
-                                        "Voice mode needs a relay connection",
-                                        android.widget.Toast.LENGTH_SHORT,
-                                    ).show()
-                                }
-                            },
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Mic,
-                                contentDescription = if (relayReady) {
-                                    "Voice mode"
-                                } else {
-                                    "Voice mode (relay disconnected)"
-                                },
-                                tint = if (relayReady) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                        .copy(alpha = 0.5f)
-                                },
-                            )
-                        }
-                    }
+                    InlineAutocomplete(
+                        commands = filteredCommands,
+                        onSelect = { cmd ->
+                            val base = cmd.command.split(" ").first()
+                            inputText = if (cmd.command.contains(" ")) cmd.command + " " else "$base "
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
-            }
+            } // end Box
         } // end Column
 
         // Mic permission denied banner — title + body + Open Settings action.
@@ -1680,7 +1717,9 @@ private fun DateSeparator(timestamp: Long) {
     ) {
         Surface(
             shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 2.dp,
+            shadowElevation = 2.dp
         ) {
             Text(
                 text = label,

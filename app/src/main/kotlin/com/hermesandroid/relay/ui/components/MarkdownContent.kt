@@ -101,7 +101,7 @@ private fun CodeBlockWithCopyButton(
         }
     }
 
-    Box {
+    Box(modifier = Modifier.padding(top = 32.dp)) {
         MarkdownHighlightedCode(code, language, highlightsBuilder)
 
         IconButton(

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -170,7 +171,7 @@ fun MessageBubble(
         // regardless of content height (tall bubbles with multi-line
         // markdown stretch the bar via fillMaxHeight + IntrinsicSize).
         Row(
-            modifier = Modifier.widthIn(max = maxBubbleWidth),
+            modifier = Modifier.widthIn(max = maxBubbleWidth).height(IntrinsicSize.Min),
             verticalAlignment = Alignment.Top,
         ) {
             if (isActionBubble) {
@@ -178,7 +179,7 @@ fun MessageBubble(
                     modifier = Modifier
                         .padding(top = 8.dp, bottom = 8.dp, end = 6.dp)
                         .width(3.dp)
-                        .height(if (message.content.isBlank()) 14.dp else 24.dp)
+                        .fillMaxHeight()
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.85f))
                 )
@@ -197,8 +198,7 @@ fun MessageBubble(
                     } else Modifier
                 )
                 .combinedClickable(
-                    onClick = {},
-                    onLongClick = { onCopyMessage(message.content) }
+                    onClick = {}
                 )
                 .semantics { contentDescription = a11yDescription }
         ) {
@@ -274,12 +274,14 @@ fun MessageBubble(
                 }
 
                 // Timestamp
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = timeFormat.format(Date(message.timestamp)),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = textColor.copy(alpha = 0.5f)
-                )
+                if (isLastInGroup) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = timeFormat.format(Date(message.timestamp)),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = textColor.copy(alpha = 0.5f)
+                    )
+                }
 
                 // Token display (assistant messages only)
                 if (!isUser && (message.inputTokens != null || message.outputTokens != null)) {
