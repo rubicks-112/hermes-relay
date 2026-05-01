@@ -180,6 +180,7 @@ fun MessageBubble(
             shape = bubbleShape,
             color = backgroundColor,
             modifier = Modifier
+                .fillMaxWidth()
                 .then(
                     if (!isUser && !isSystem && isDarkTheme) {
                         Modifier.leftEdgeGlow(
@@ -195,12 +196,13 @@ fun MessageBubble(
                 )
                 .semantics { contentDescription = a11yDescription }
         ) {
-            Column(modifier = Modifier.padding(12.dp)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
                 SelectionContainer {
                     if (isUser || isSystem) {
                         // Plain text for user and system messages
                         Text(
                             text = message.content,
+                            modifier = Modifier.fillMaxWidth(),
                             style = MaterialTheme.typography.bodyMedium,
                             color = textColor
                         )
@@ -209,7 +211,8 @@ fun MessageBubble(
                         if (message.content.isNotEmpty()) {
                             MarkdownContent(
                                 content = message.content,
-                                textColor = textColor
+                                textColor = textColor,
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }
