@@ -19,8 +19,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -54,6 +56,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -72,6 +77,9 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
@@ -311,6 +319,7 @@ fun ChatScreen(
     )
 
     var inputText by remember { mutableStateOf("") }
+    val inputFocusRequester = remember { FocusRequester() }
     var showCommandPalette by remember { mutableStateOf(false) }
     var showAgentInfo by remember { mutableStateOf(false) }
 
@@ -579,6 +588,24 @@ fun ChatScreen(
                     // of the last item to the bottom of the viewport
                     // regardless of how tall the streaming bubble has grown.
                     listState.animateScrollToItem(lastIndex, Int.MAX_VALUE)
+                }
+            }
+    }
+
+    // Scroll to bottom when keyboard opens so the user can see the latest
+    // messages while typing a reply. Respects userScrolledAway — if the user
+    // is intentionally reading history, we don't yank them back.
+    val density = LocalDensity.current
+    val imeInsets = WindowInsets.ime
+    LaunchedEffect(listState) {
+        snapshotFlow { imeInsets.getBottom(density) }
+            .distinctUntilChanged()
+            .collectLatest { imeBottom ->
+                if (imeBottom > 0 && !userScrolledAway && messages.isNotEmpty()) {
+                    val lastIndex = listState.layoutInfo.totalItemsCount - 1
+                    if (lastIndex >= 0) {
+                        listState.animateScrollToItem(lastIndex, Int.MAX_VALUE)
+                    }
                 }
             }
     }
@@ -1333,6 +1360,7 @@ fun ChatScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .navigationBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.Bottom
             ) {
@@ -1363,12 +1391,23 @@ fun ChatScreen(
                 OutlinedTextField(
                     value = inputText,
                     onValueChange = { if (it.length <= charLimit) inputText = it },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .focusRequester(inputFocusRequester),
                     placeholder = {
                         Text(if (isStreaming && inputText.isBlank()) "Queue a message..." else "Message...")
                     },
                     maxLines = 4,
                     enabled = chatReady,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(
+                        onSend = {
+                            if (inputText.isNotBlank() || pendingAttachments.isNotEmpty()) {
+                                chatViewModel.sendMessage(inputText.ifBlank { "[attachment]" })
+                                inputText = ""
+                            }
+                        }
+                    ),
                     supportingText = if (inputText.length > charLimit - 200) {
                         {
                             Text(
@@ -1417,6 +1456,7 @@ fun ChatScreen(
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 chatViewModel.sendMessage(inputText.ifBlank { "[attachment]" })
                                 inputText = ""
+                                inputFocusRequester.requestFocus()
                             },
                             enabled = sendEnabled
                         ) {
