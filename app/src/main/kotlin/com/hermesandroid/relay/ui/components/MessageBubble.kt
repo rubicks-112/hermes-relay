@@ -113,11 +113,18 @@ fun MessageBubble(
         MessageRole.SYSTEM -> MaterialTheme.colorScheme.onTertiaryContainer
     }
 
-    // Grouped bubble shapes — flat edges where consecutive messages meet
-    val topStart = if (isUser) { if (isFirstInGroup) 16.dp else 16.dp } else { if (isFirstInGroup) 16.dp else 4.dp }
-    val topEnd = if (isUser) { if (isFirstInGroup) 16.dp else 4.dp } else { if (isFirstInGroup) 16.dp else 16.dp }
-    val bottomStart = if (isUser) 16.dp else 4.dp  // tail side always small
-    val bottomEnd = if (isUser) 4.dp else 16.dp     // tail side always small
+    // Grouped bubble shapes — flat edges where consecutive messages meet.
+    // Tail (small corner) only on the last message in a group.
+    val topStart = if (isFirstInGroup) 16.dp else 4.dp
+    val topEnd = if (isFirstInGroup) 16.dp else 4.dp
+    val bottomStart = when {
+        isUser -> 16.dp
+        else -> if (isLastInGroup) 4.dp else 16.dp
+    }
+    val bottomEnd = when {
+        isUser -> if (isLastInGroup) 4.dp else 16.dp
+        else -> 16.dp
+    }
 
     val bubbleShape = when (message.role) {
         MessageRole.USER -> RoundedCornerShape(topStart, topEnd, bottomEnd, bottomStart)
@@ -180,7 +187,6 @@ fun MessageBubble(
             shape = bubbleShape,
             color = backgroundColor,
             modifier = Modifier
-                .fillMaxWidth()
                 .then(
                     if (!isUser && !isSystem && isDarkTheme) {
                         Modifier.leftEdgeGlow(
@@ -196,13 +202,12 @@ fun MessageBubble(
                 )
                 .semantics { contentDescription = a11yDescription }
         ) {
-            Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+            Column(modifier = Modifier.padding(12.dp)) {
                 SelectionContainer {
                     if (isUser || isSystem) {
                         // Plain text for user and system messages
                         Text(
                             text = message.content,
-                            modifier = Modifier.fillMaxWidth(),
                             style = MaterialTheme.typography.bodyMedium,
                             color = textColor
                         )

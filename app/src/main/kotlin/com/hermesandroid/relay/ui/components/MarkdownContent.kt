@@ -56,7 +56,7 @@ fun MarkdownContent(
         colors = markdownColor(
             text = textColor,
             codeText = MaterialTheme.colorScheme.onSurfaceVariant,
-            codeBackground = MaterialTheme.colorScheme.surfaceVariant,
+            codeBackground = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f),
             linkText = MaterialTheme.colorScheme.primary
         ),
         typography = markdownTypography(

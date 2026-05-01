@@ -1092,6 +1092,15 @@ fun ChatScreen(
                         )
                     }
 
+                    // Filter out empty bubbles before LazyColumn so key count matches
+                    // emitted composable count and animateItem() works reliably.
+                    val visibleMessages = messages.filter {
+                        it.content.isNotBlank() ||
+                            it.toolCalls.isNotEmpty() ||
+                            it.attachments.isNotEmpty() ||
+                            it.isStreaming
+                    }
+
                     LazyColumn(
                         state = listState,
                         modifier = Modifier
@@ -1101,19 +1110,11 @@ fun ChatScreen(
                     ) {
                         item { Spacer(modifier = Modifier.height(8.dp).animateItem()) }
 
-                        items(messages.size, key = { messages[it].id }) { index ->
-                            val message = messages[index]
+                        items(visibleMessages.size, key = { visibleMessages[it].id }) { index ->
+                            val message = visibleMessages[index]
 
-                            // Skip empty bubbles (content stripped by annotation parser, no tool calls,
-                            // no attachments). Attachments keep the bubble alive for inbound media.
-                            if (message.content.isBlank() &&
-                                message.toolCalls.isEmpty() &&
-                                message.attachments.isEmpty() &&
-                                !message.isStreaming
-                            ) return@items
-
-                            val isFirstInGroup = index == 0 || messages[index - 1].role != message.role
-                            val isLastInGroup = index == messages.size - 1 || messages[index + 1].role != message.role
+                            val isFirstInGroup = index == 0 || visibleMessages[index - 1].role != message.role
+                            val isLastInGroup = index == visibleMessages.size - 1 || visibleMessages[index + 1].role != message.role
 
                             // Date separator
                             if (index == 0 || !isSameDay(messages[index - 1].timestamp, message.timestamp)) {
