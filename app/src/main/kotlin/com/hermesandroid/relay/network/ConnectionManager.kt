@@ -125,6 +125,15 @@ class ConnectionManager(
     private var serverUrl: String? = null
     private var reconnectAttempt = 0
     private var shouldReconnect = true
+    /**
+     * Monotonically-increments on every call to [connectToUrlOnMainPath].
+     * Used by [scheduleReconnect] to detect when a newer connect cycle
+     * has started (e.g. [onAvailable] already swapped to a new endpoint)
+     * and abort stale retry attempts so they don't open phantom sockets
+     * to a dead URL.
+     */
+    @Volatile
+    private var connectEpoch = 0
     // Last HTTP status seen during WSS upgrade, captured in onFailure.
     // Used by scheduleReconnect() to pick an appropriate backoff — notably
     // a much longer one when the server is rate-limiting us (HTTP 429) so
@@ -239,6 +248,10 @@ class ConnectionManager(
             Log.w(TAG, "⚠ Connecting over INSECURE ws:// to: $normalized")
         }
 
+        // Bump epoch so any pending reconnect scheduled from a previous
+        // failure knows it is stale and aborts before opening a phantom
+        // socket to a dead URL.
+        connectEpoch++
         serverUrl = normalized
         shouldReconnect = true
         reconnectAttempt = 0
@@ -525,8 +538,13 @@ class ConnectionManager(
             return
         }
 
-        val url = serverUrl ?: return
         reconnectAttempt++
+
+        // Capture the epoch at scheduling time. If a newer connect cycle
+        // (e.g. onAvailable swapping to a new endpoint) starts before this
+        // delay expires, we must abort so we don't open a phantom socket
+        // to a stale URL.
+        val scheduledEpoch = connectEpoch
 
         // Server-issued 429 means we're IP-banned — keep retrying at our
         // normal exponential cadence and we'll re-fill the ban bucket on
@@ -545,12 +563,44 @@ class ConnectionManager(
             // Re-check the gate after the backoff — by the time the delay
             // expires, auth state may have changed (e.g., user hit Revoke
             // during the retry window).
-            if (shouldReconnect && reconnectGate()) {
-                doConnect(url)
-            } else if (!reconnectGate()) {
+            if (!shouldReconnect) {
+                Log.d(TAG, "scheduleReconnect: shouldReconnect is false — aborting")
+                return@launch
+            }
+            if (!reconnectGate()) {
                 Log.i(TAG, "scheduleReconnect: gate turned false during backoff — aborting retry")
                 _connectionState.value = ConnectionState.Disconnected
+                return@launch
             }
+            // If a newer connect cycle has started (e.g. onAvailable already
+            // swapped to Tailscale), abort this stale retry.
+            if (scheduledEpoch != connectEpoch) {
+                Log.i(TAG, "scheduleReconnect: epoch changed ($scheduledEpoch → $connectEpoch) — aborting stale retry")
+                return@launch
+            }
+            // If onAvailable (or a manual reconnect) already succeeded while
+            // this retry was sleeping, don't tear down the live socket.
+            if (_connectionState.value == ConnectionState.Connected) {
+                Log.i(TAG, "scheduleReconnect: already connected — aborting stale retry")
+                return@launch
+            }
+
+            // ADR 24: re-resolve endpoints before every retry. The network
+            // landscape may have shifted during the backoff (e.g. Tailscale
+            // finally came up on mobile data). Falling back to the stale
+            // serverUrl would hammer a dead LAN URL forever.
+            val resolved = resolveBestEndpointSafe()
+            val targetUrl = if (resolved != null) {
+                _activeEndpoint.value = resolved
+                Log.i(TAG, "scheduleReconnect: resolver picked role=${resolved.role} url=${resolved.relay.url}")
+                resolved.relay.url
+            } else {
+                serverUrl ?: run {
+                    Log.w(TAG, "scheduleReconnect: no serverUrl and no resolved endpoint — aborting")
+                    return@launch
+                }
+            }
+            doConnect(targetUrl)
         }
     }
 }
