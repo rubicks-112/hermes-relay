@@ -1402,6 +1402,45 @@ class ConnectionViewModel(application: Application) : AndroidViewModel(applicati
                 }
         }
 
+        // ADR 24 — sync API server URL when the active endpoint changes.
+        // When the phone switches from LAN to Tailscale (or vice versa) the
+        // relay WSS reconnects to the new endpoint, but the API server URL
+        // used for chat/SSE was still pointing at the old network's IP.
+        // This observer catches endpoint transitions and rebuilds the API
+        // client against the new coordinates so chat works across networks.
+        viewModelScope.launch {
+            connectionManager.activeEndpoint
+                .collect { endpoint ->
+                    if (endpoint == null) return@collect
+                    val newApiUrl = endpoint.api.url
+                    val currentApiUrl = _apiServerUrl.value
+                    if (newApiUrl != currentApiUrl) {
+                        android.util.Log.i(
+                            "ConnectionVM",
+                            "endpoint switch: updating API URL $currentApiUrl → $newApiUrl (role=${endpoint.role})"
+                        )
+                        _apiServerUrl.value = newApiUrl
+                        // Mirror into the active Connection so the store
+                        // stays consistent and survives process death.
+                        val activeId = connectionStore.activeConnectionId.value
+                        if (activeId != null) {
+                            val existing = connectionStore.connections.value
+                                .firstOrNull { it.id == activeId }
+                            if (existing != null) {
+                                connectionStore.updateConnection(
+                                    existing.copy(apiServerUrl = newApiUrl)
+                                )
+                            }
+                        }
+                        // Persist so the new URL survives app restart.
+                        getApplication<Application>().relayDataStore.edit { prefs ->
+                            prefs[KEY_API_SERVER_URL] = newApiUrl
+                        }
+                        rebuildApiClient()
+                    }
+                }
+        }
+
         // Multi-connection: stamp the active Connection with pairing metadata
         // when AuthManager surfaces a fresh PairedSession. Closes the bug
         // where Connections list showed "Not paired" even though the
