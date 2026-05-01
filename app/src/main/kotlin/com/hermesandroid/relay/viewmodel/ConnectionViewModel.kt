@@ -1402,24 +1402,34 @@ class ConnectionViewModel(application: Application) : AndroidViewModel(applicati
                 }
         }
 
-        // ADR 24 — sync API server URL when the active endpoint changes.
+        // ADR 24 — sync API + relay URLs when the active endpoint changes.
         // When the phone switches from LAN to Tailscale (or vice versa) the
         // relay WSS reconnects to the new endpoint, but the API server URL
-        // used for chat/SSE was still pointing at the old network's IP.
-        // This observer catches endpoint transitions and rebuilds the API
-        // client against the new coordinates so chat works across networks.
+        // used for chat/SSE and the relay URL used by ProfileInspector were
+        // still pointing at the old network's IP.
         viewModelScope.launch {
             connectionManager.activeEndpoint
                 .collect { endpoint ->
                     if (endpoint == null) return@collect
                     val newApiUrl = endpoint.api.url
+                    val newRelayUrl = endpoint.relay.url
                     val currentApiUrl = _apiServerUrl.value
-                    if (newApiUrl != currentApiUrl) {
+                    val currentRelayUrl = _relayUrl.value
+                    val apiChanged = newApiUrl != currentApiUrl
+                    val relayChanged = newRelayUrl != currentRelayUrl
+                    if (apiChanged || relayChanged) {
                         android.util.Log.i(
                             "ConnectionVM",
-                            "endpoint switch: updating API URL $currentApiUrl → $newApiUrl (role=${endpoint.role})"
+                            "endpoint switch: role=${endpoint.role} " +
+                                "api=$currentApiUrl → $newApiUrl " +
+                                "relay=$currentRelayUrl → $newRelayUrl"
                         )
-                        _apiServerUrl.value = newApiUrl
+                        if (apiChanged) {
+                            _apiServerUrl.value = newApiUrl
+                        }
+                        if (relayChanged) {
+                            _relayUrl.value = newRelayUrl
+                        }
                         // Mirror into the active Connection so the store
                         // stays consistent and survives process death.
                         val activeId = connectionStore.activeConnectionId.value
@@ -1427,16 +1437,22 @@ class ConnectionViewModel(application: Application) : AndroidViewModel(applicati
                             val existing = connectionStore.connections.value
                                 .firstOrNull { it.id == activeId }
                             if (existing != null) {
-                                connectionStore.updateConnection(
-                                    existing.copy(apiServerUrl = newApiUrl)
-                                )
+                                var updated = existing
+                                if (apiChanged) updated = updated.copy(apiServerUrl = newApiUrl)
+                                if (relayChanged) updated = updated.copy(relayUrl = newRelayUrl)
+                                if (updated != existing) {
+                                    connectionStore.updateConnection(updated)
+                                }
                             }
                         }
-                        // Persist so the new URL survives app restart.
+                        // Persist so the new URLs survive app restart.
                         getApplication<Application>().relayDataStore.edit { prefs ->
-                            prefs[KEY_API_SERVER_URL] = newApiUrl
+                            if (apiChanged) prefs[KEY_API_SERVER_URL] = newApiUrl
+                            if (relayChanged) prefs[KEY_RELAY_URL] = newRelayUrl
                         }
-                        rebuildApiClient()
+                        if (apiChanged) {
+                            rebuildApiClient()
+                        }
                     }
                 }
         }
