@@ -75,3 +75,4 @@ keystore.properties
 # Desktop TUI smoke harness runtime artifacts
 .smoke-relay.pid
 .smoke-relay.log
+.gitnexus
