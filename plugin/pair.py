@@ -262,6 +262,7 @@ def _lan_endpoint(
     relay_port: int,
     relay_tls: bool,
     priority: int = 0,
+    relay_code: str | None = None,
 ) -> dict[str, Any]:
     """Build a ``role: lan`` endpoint candidate using the LAN-resolved host.
 
@@ -272,14 +273,17 @@ def _lan_endpoint(
     lan_host = _resolve_lan_ip(api_host)
     relay_lan_host = _resolve_lan_ip(relay_host)
     relay_scheme = "wss" if relay_tls else "ws"
+    relay_block: dict[str, Any] = {
+        "url": f"{relay_scheme}://{relay_lan_host}:{relay_port}",
+        "transport_hint": relay_scheme,
+    }
+    if relay_code:
+        relay_block["code"] = relay_code
     return {
         "role": "lan",
         "priority": priority,
         "api": {"host": lan_host, "port": api_port, "tls": api_tls},
-        "relay": {
-            "url": f"{relay_scheme}://{relay_lan_host}:{relay_port}",
-            "transport_hint": relay_scheme,
-        },
+        "relay": relay_block,
     }
 
 
@@ -311,6 +315,8 @@ def _tailscale_endpoint(
     api_port: int,
     relay_port: int,
     priority: int,
+    relay_tls: bool = False,
+    relay_code: str | None = None,
 ) -> Optional[dict[str, Any]]:
     """Materialize a ``role: tailscale`` candidate from a helper status dict.
 
@@ -318,9 +324,13 @@ def _tailscale_endpoint(
     like ``{"hostname": "hermes.tail-scale.ts.net", "https": True}``.
     We're defensive about shape — if the hostname is missing or doesn't
     look like a Tailscale magic-DNS record we skip the candidate rather
-    than emit a broken one. Tailscale's ``serve --https`` terminates TLS
-    so the api side is https by default; the relay is reached over wss
-    on the same hostname.
+    than emit a broken one.
+
+    TLS behaviour:
+    - If tailscale serve is active on ``relay_port``, we assume HTTPS/WSS
+      (tailscale terminates TLS).
+    - If tailscale serve is NOT active, we fall back to ``relay_tls`` from
+      the relay config (``ws`` for ``--no-ssl`` installs).
     """
     hostname = status.get("hostname") or status.get("dns_name") or status.get("host")
     if not isinstance(hostname, str) or not hostname.strip():
@@ -333,18 +343,24 @@ def _tailscale_endpoint(
         # raw address. Operators wanting the ip path can pass a custom
         # endpoint via the dashboard's /pairing/mint body.
         return None
-    # Tailscale serve defaults to https; the helper can override via
-    # `tls: False` if the operator set up plain http (uncommon).
-    tls = bool(status.get("tls", True))
+    serve_ports = status.get("serve_ports") or []
+    tailscale_serve_active = isinstance(serve_ports, list) and relay_port in serve_ports
+    if tailscale_serve_active:
+        tls = True
+    else:
+        tls = relay_tls
     scheme = "wss" if tls else "ws"
+    relay_block: dict[str, Any] = {
+        "url": f"{scheme}://{hostname}:{relay_port}",
+        "transport_hint": scheme,
+    }
+    if relay_code:
+        relay_block["code"] = relay_code
     return {
         "role": "tailscale",
         "priority": priority,
         "api": {"host": hostname, "port": api_port, "tls": tls},
-        "relay": {
-            "url": f"{scheme}://{hostname}:{relay_port}",
-            "transport_hint": scheme,
-        },
+        "relay": relay_block,
     }
 
 
@@ -411,6 +427,7 @@ def build_endpoint_candidates(
     relay_tls: bool,
     public_url: Optional[str] = None,
     prefer: Optional[str] = None,
+    relay_code: Optional[str] = None,
 ) -> list[dict[str, Any]]:
     """Build the ordered ``endpoints`` array for a v3 QR payload.
 
@@ -464,6 +481,7 @@ def build_endpoint_candidates(
                 relay_port,
                 relay_tls,
                 priority=next_priority,
+                relay_code=relay_code,
             )
         )
 
@@ -476,6 +494,8 @@ def build_endpoint_candidates(
                     api_port=api_port,
                     relay_port=relay_port,
                     priority=next_priority,
+                    relay_tls=relay_tls,
+                    relay_code=relay_code,
                 )
             )
         elif mode == "tailscale":
@@ -508,6 +528,7 @@ def build_endpoint_candidates(
                     effective_public_url,
                     relay_port=relay_port,
                     priority=next_priority,
+                    relay_code=relay_code,
                 )
             )
         elif mode == "public":
@@ -1120,6 +1141,7 @@ def pair_command(args) -> None:
                 relay_tls=bool(_relay_cfg.get("tls")),
                 public_url=public_url,
                 prefer=prefer,
+                relay_code=relay_block.get("code") if relay_block else None,
             )
         except ValueError as exc:
             print(f"  [error] --mode/--public-url: {exc}", file=sys.stderr)
