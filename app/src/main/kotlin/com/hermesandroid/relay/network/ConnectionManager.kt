@@ -356,6 +356,12 @@ class ConnectionManager(
                 if (endpointResolver == null) return
                 val url = serverUrl ?: return
                 scope.launch {
+                    // ADR 24: bust the probe cache so a fresh network
+                    // (e.g. mobile data after WiFi drop) is re-evaluated
+                    // from scratch. Without this, a previous failed Tailscale
+                    // probe (tunnel not ready yet) stays cached unreachable
+                    // and we never try it again.
+                    endpointResolver.clearCache()
                     val resolved = resolveBestEndpointSafe()
                     val newUrl = resolved?.relay?.url ?: return@launch
                     val normalizedNew = normalizeRelayUrl(newUrl)
@@ -589,6 +595,11 @@ class ConnectionManager(
             // landscape may have shifted during the backoff (e.g. Tailscale
             // finally came up on mobile data). Falling back to the stale
             // serverUrl would hammer a dead LAN URL forever.
+            //
+            // Bust the probe cache first: if both LAN and Tailscale were
+            // marked unreachable during the initial failure, the cache would
+            // otherwise starve the retry loop forever.
+            endpointResolver?.clearCache()
             val resolved = resolveBestEndpointSafe()
             val targetUrl = if (resolved != null) {
                 _activeEndpoint.value = resolved
