@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,7 +33,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.hermesandroid.relay.ui.theme.gradientBorder
 import com.hermesandroid.relay.viewmodel.ConnectionViewModel
@@ -51,7 +55,10 @@ fun AppearanceSettingsScreen(
     val theme by connectionViewModel.theme.collectAsState()
     val isDarkTheme = isSystemInDarkTheme()
 
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
                 title = { Text("Appearance") },
@@ -66,6 +73,7 @@ fun AppearanceSettingsScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                 ),
+                scrollBehavior = scrollBehavior,
             )
         },
     ) { innerPadding ->
@@ -74,7 +82,8 @@ fun AppearanceSettingsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 16.dp),
+                .padding(horizontal = 16.dp, vertical = 16.dp)
+                .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Theme section
@@ -220,7 +229,10 @@ fun AppearanceSettingsScreen(
                         }
                         Switch(
                             checked = animEnabled,
-                            onCheckedChange = { connectionViewModel.setAnimationEnabled(it) }
+                            onCheckedChange = { connectionViewModel.setAnimationEnabled(it) },
+                            modifier = Modifier.semantics {
+                                contentDescription = "ASCII sphere background toggle"
+                            },
                         )
                     }
 
@@ -248,7 +260,10 @@ fun AppearanceSettingsScreen(
                         Switch(
                             checked = animBehindChat && animEnabled,
                             onCheckedChange = { connectionViewModel.setAnimationBehindChat(it) },
-                            enabled = animEnabled
+                            enabled = animEnabled,
+                            modifier = Modifier.semantics {
+                                contentDescription = "Behind messages background toggle"
+                            },
                         )
                     }
                 }

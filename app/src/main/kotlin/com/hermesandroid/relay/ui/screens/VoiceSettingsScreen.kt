@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -45,7 +47,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.hermesandroid.relay.data.BargeInSensitivity
@@ -118,7 +123,10 @@ fun VoiceSettingsScreen(
         }
     }
 
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
                 title = { Text("Voice") },
@@ -133,6 +141,7 @@ fun VoiceSettingsScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                 ),
+                scrollBehavior = scrollBehavior,
             )
         }
     ) { innerPadding ->
@@ -141,7 +150,8 @@ fun VoiceSettingsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(16.dp)
+                .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // --- Voice Mode ---
@@ -224,6 +234,9 @@ fun VoiceSettingsScreen(
                         onCheckedChange = { enabled ->
                             scope.launch { prefsRepo.setAutoTts(enabled) }
                         },
+                        modifier = Modifier.semantics {
+                            contentDescription = "Auto-TTS toggle"
+                        },
                     )
                 }
             }
@@ -248,6 +261,9 @@ fun VoiceSettingsScreen(
                     Switch(
                         checked = bargeInPrefs.enabled,
                         onCheckedChange = { settingsViewModel.setBargeInEnabled(it) },
+                        modifier = Modifier.semantics {
+                            contentDescription = "Interrupt when I speak toggle"
+                        },
                     )
                 }
 
@@ -338,6 +354,9 @@ fun VoiceSettingsScreen(
                             checked = bargeInPrefs.resumeAfterInterruption,
                             onCheckedChange = {
                                 settingsViewModel.setResumeAfterInterruption(it)
+                            },
+                            modifier = Modifier.semantics {
+                                contentDescription = "Resume after interruption toggle"
                             },
                         )
                     }

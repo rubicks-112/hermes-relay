@@ -1,5 +1,9 @@
 package com.hermesandroid.relay.ui.screens
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -225,8 +229,13 @@ fun ProfileInspectorScreen(
                 }
             }
 
-            Box(modifier = Modifier.weight(1f)) {
-                when (tabs[selectedTab].section) {
+            AnimatedContent(
+                targetState = selectedTab,
+                transitionSpec = { fadeIn() togetherWith fadeOut() },
+                modifier = Modifier.weight(1f),
+                label = "inspector_tabs",
+            ) { tabIndex ->
+                when (tabs[tabIndex].section) {
                     InspectorSection.Config -> ConfigPane(
                         state = configState,
                         onRetry = { viewModel.refreshSection(InspectorSection.Config) },

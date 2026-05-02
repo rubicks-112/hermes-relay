@@ -4,6 +4,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -76,6 +78,9 @@ import com.hermesandroid.relay.ui.components.WhatsNewDialog
 import com.hermesandroid.relay.data.BridgePreferencesRepository
 import com.hermesandroid.relay.data.BridgeSafetyPreferencesRepository
 import com.hermesandroid.relay.data.BuildFlavor
+import com.hermesandroid.relay.data.relayDataStore
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import com.hermesandroid.relay.util.HumanError
@@ -556,10 +561,19 @@ fun RelayApp() {
 
     HermesRelayTheme(themePreference = themePreference, fontScale = fontScale) {
         // Brief sphere intro after system splash fades
-        var introComplete by remember { mutableStateOf(false) }
+        val context = androidx.compose.ui.platform.LocalContext.current
+        val dataStore = context.relayDataStore
+        val skipIntro by dataStore.data
+            .map { it[booleanPreferencesKey("skip_intro")] ?: false }
+            .collectAsState(initial = false)
+
+        var introComplete by remember { mutableStateOf(skipIntro) }
         LaunchedEffect(Unit) {
-            delay(3000L) // show sphere intro for 3s
-            introComplete = true
+            if (!skipIntro) {
+                delay(2500L)
+                introComplete = true
+                dataStore.edit { it[booleanPreferencesKey("skip_intro")] = true }
+            }
         }
 
         val navController = rememberNavController()
@@ -826,7 +840,11 @@ fun RelayApp() {
             NavHost(
                 navController = navController,
                 startDestination = startDestination,
-                modifier = Modifier.padding(innerPadding)
+                modifier = Modifier.padding(innerPadding),
+                enterTransition = { slideInHorizontally { it } + fadeIn() },
+                exitTransition = { slideOutHorizontally { -it } + fadeOut() },
+                popEnterTransition = { slideInHorizontally { -it } + fadeIn() },
+                popExitTransition = { slideOutHorizontally { it } + fadeOut() },
             ) {
                 composable(Screen.Onboarding.route) {
                     // The wizard inside OnboardingScreen now owns credential

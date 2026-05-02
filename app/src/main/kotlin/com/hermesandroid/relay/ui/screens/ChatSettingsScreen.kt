@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -41,7 +42,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.hermesandroid.relay.ui.theme.gradientBorder
 import com.hermesandroid.relay.viewmodel.ConnectionViewModel
@@ -73,7 +77,10 @@ fun ChatSettingsScreen(
 
     val isDarkTheme = isSystemInDarkTheme()
 
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
                 title = { Text("Chat") },
@@ -88,6 +95,7 @@ fun ChatSettingsScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                 ),
+                scrollBehavior = scrollBehavior,
             )
         },
     ) { innerPadding ->
@@ -96,7 +104,8 @@ fun ChatSettingsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 16.dp),
+                .padding(horizontal = 16.dp, vertical = 16.dp)
+                .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Card(
@@ -133,7 +142,10 @@ fun ChatSettingsScreen(
                         }
                         Switch(
                             checked = showThinkingSetting,
-                            onCheckedChange = { connectionViewModel.setShowThinking(it) }
+                            onCheckedChange = { connectionViewModel.setShowThinking(it) },
+                            modifier = Modifier.semantics {
+                                contentDescription = "Show reasoning toggle"
+                            },
                         )
                     }
 
@@ -159,7 +171,10 @@ fun ChatSettingsScreen(
                         }
                         Switch(
                             checked = smoothAutoScroll,
-                            onCheckedChange = { connectionViewModel.setSmoothAutoScroll(it) }
+                            onCheckedChange = { connectionViewModel.setSmoothAutoScroll(it) },
+                            modifier = Modifier.semantics {
+                                contentDescription = "Smooth auto-scroll toggle"
+                            },
                         )
                     }
 
@@ -220,7 +235,10 @@ fun ChatSettingsScreen(
                         }
                         Switch(
                             checked = appContextEnabled,
-                            onCheckedChange = { connectionViewModel.setAppContext(it) }
+                            onCheckedChange = { connectionViewModel.setAppContext(it) },
+                            modifier = Modifier.semantics {
+                                contentDescription = "Share phone status toggle"
+                            },
                         )
                     }
 
@@ -245,7 +263,10 @@ fun ChatSettingsScreen(
                                 }
                                 Switch(
                                     checked = appContextBridgeState,
-                                    onCheckedChange = { connectionViewModel.setAppContextBridgeState(it) }
+                                    onCheckedChange = { connectionViewModel.setAppContextBridgeState(it) },
+                                    modifier = Modifier.semantics {
+                                        contentDescription = "Bridge permissions toggle"
+                                    },
                                 )
                             }
 
@@ -268,7 +289,10 @@ fun ChatSettingsScreen(
                                 }
                                 Switch(
                                     checked = appContextCurrentApp,
-                                    onCheckedChange = { connectionViewModel.setAppContextCurrentApp(it) }
+                                    onCheckedChange = { connectionViewModel.setAppContextCurrentApp(it) },
+                                    modifier = Modifier.semantics {
+                                        contentDescription = "Foreground app info toggle"
+                                    },
                                 )
                             }
 
@@ -291,7 +315,10 @@ fun ChatSettingsScreen(
                                 }
                                 Switch(
                                     checked = appContextBattery,
-                                    onCheckedChange = { connectionViewModel.setAppContextBattery(it) }
+                                    onCheckedChange = { connectionViewModel.setAppContextBattery(it) },
+                                    modifier = Modifier.semantics {
+                                        contentDescription = "Battery level info toggle"
+                                    },
                                 )
                             }
 
@@ -314,7 +341,10 @@ fun ChatSettingsScreen(
                                 }
                                 Switch(
                                     checked = appContextSafetyStatus,
-                                    onCheckedChange = { connectionViewModel.setAppContextSafetyStatus(it) }
+                                    onCheckedChange = { connectionViewModel.setAppContextSafetyStatus(it) },
+                                    modifier = Modifier.semantics {
+                                        contentDescription = "Safety rails toggle"
+                                    },
                                 )
                             }
 
@@ -415,7 +445,10 @@ fun ChatSettingsScreen(
                         Switch(
                             checked = parseToolAnnotations && isSessionsMode,
                             onCheckedChange = { connectionViewModel.setParseToolAnnotations(it) },
-                            enabled = isSessionsMode
+                            enabled = isSessionsMode,
+                            modifier = Modifier.semantics {
+                                contentDescription = "Parse tool annotations toggle"
+                            },
                         )
                     }
 

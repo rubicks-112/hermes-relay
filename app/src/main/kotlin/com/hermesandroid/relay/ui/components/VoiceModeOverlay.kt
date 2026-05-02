@@ -24,6 +24,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -55,6 +57,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
@@ -166,6 +170,7 @@ fun VoiceModeOverlay(
                 DropdownMenu(
                     expanded = modeMenuOpen,
                     onDismissRequest = { modeMenuOpen = false },
+                    modifier = Modifier.heightIn(max = 280.dp),
                 ) {
                     InteractionMode.values().forEach { mode ->
                         DropdownMenuItem(
@@ -375,7 +380,8 @@ fun VoiceModeOverlay(
             exit = fadeOut(),
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 64.dp, start = 16.dp, end = 16.dp),
+                .padding(top = 64.dp, start = 16.dp, end = 16.dp)
+                .semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Assertive },
         ) {
             Surface(
                 shape = RoundedCornerShape(12.dp),
@@ -458,7 +464,8 @@ fun VoiceModeOverlay(
             },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 48.dp),
+                .navigationBarsPadding()
+                .padding(bottom = 16.dp),
         )
     }
 }

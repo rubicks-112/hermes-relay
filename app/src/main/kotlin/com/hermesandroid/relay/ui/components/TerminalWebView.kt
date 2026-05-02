@@ -79,6 +79,8 @@ fun TerminalWebView(
             settings.mediaPlaybackRequiresUserGesture = false
             settings.loadWithOverviewMode = false
             settings.useWideViewPort = false
+            val systemFontScale = context.resources.configuration.fontScale
+            settings.textZoom = (100 * systemFontScale.coerceIn(0.8f, 1.5f)).toInt()
             // System font-size scaling is left at default; the font scale is
             // driven by fontScale flow below.
             overScrollMode = View.OVER_SCROLL_NEVER
