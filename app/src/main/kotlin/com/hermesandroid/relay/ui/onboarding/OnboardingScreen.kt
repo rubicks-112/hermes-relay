@@ -38,6 +38,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -121,7 +123,17 @@ fun OnboardingScreen(
     val pageCount = pages.size
     val lastPage = pageCount - 1
 
-    val pagerState = rememberPagerState(pageCount = { pageCount })
+    var savedPage by rememberSaveable { mutableIntStateOf(0) }
+    val pagerState = rememberPagerState(
+        initialPage = savedPage,
+        pageCount = { pageCount }
+    )
+
+    // Sync back to saved state when page changes
+    LaunchedEffect(pagerState.currentPage) {
+        savedPage = pagerState.currentPage
+    }
+
     val coroutineScope = rememberCoroutineScope()
     var showSkipConfirm by rememberSaveable { mutableStateOf(false) }
 

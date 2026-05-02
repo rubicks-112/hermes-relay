@@ -570,7 +570,7 @@ fun RelayApp() {
         var introComplete by remember { mutableStateOf(skipIntro) }
         LaunchedEffect(Unit) {
             if (!skipIntro) {
-                delay(2500L)
+                delay(1500L)
                 introComplete = true
                 dataStore.edit { it[booleanPreferencesKey("skip_intro")] = true }
             }
@@ -1358,7 +1358,7 @@ fun RelayApp() {
         AnimatedVisibility(
             visible = !introComplete && onboardingCompleted,
             enter = fadeIn(tween(300)),
-            exit = fadeOut(tween(600))
+            exit = fadeOut(tween(400))
         ) {
             Box(
                 modifier = Modifier

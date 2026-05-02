@@ -74,7 +74,7 @@ class MainActivity : ComponentActivity() {
                 View.ALPHA,
                 1f, 0f
             ).apply {
-                duration = 400
+                duration = 600
                 interpolator = DecelerateInterpolator()
                 doOnEnd { splashScreenView.remove() }
             }
