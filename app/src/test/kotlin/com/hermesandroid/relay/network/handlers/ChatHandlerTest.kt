@@ -3,10 +3,12 @@ package com.hermesandroid.relay.network.handlers
 import com.hermesandroid.relay.data.ChatMessage
 import com.hermesandroid.relay.data.ChatSession
 import com.hermesandroid.relay.data.MessageRole
+import com.hermesandroid.relay.data.MessageStatus
 import com.hermesandroid.relay.data.ToolCall
 import com.hermesandroid.relay.data.VoiceIntentTrace
 import com.hermesandroid.relay.network.models.MessageItem
 import com.hermesandroid.relay.network.models.SessionItem
+import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -677,6 +679,79 @@ class ChatHandlerTest {
         // No crash, plain message preserved unchanged
         assertEquals(1, handler.messages.value.size)
         assertNull(handler.messages.value[0].voiceIntent)
+    }
+
+    // --- updateMessageStatus ---
+
+    @Test
+    fun updateMessageStatus_flipsSentToFailed() {
+        handler.addUserMessage(createUserMessage("msg-1", "Hello"))
+        assertEquals(MessageStatus.SENT, handler.messages.value[0].status)
+
+        handler.updateMessageStatus("msg-1", MessageStatus.FAILED)
+
+        assertEquals(MessageStatus.FAILED, handler.messages.value[0].status)
+    }
+
+    @Test
+    fun updateMessageStatus_flipsSentToSending() {
+        handler.addUserMessage(createUserMessage("msg-1", "Hello"))
+        assertEquals(MessageStatus.SENT, handler.messages.value[0].status)
+
+        handler.updateMessageStatus("msg-1", MessageStatus.SENDING)
+
+        assertEquals(MessageStatus.SENDING, handler.messages.value[0].status)
+    }
+
+    @Test
+    fun updateMessageStatus_noOpWhenIdDoesNotExist() {
+        handler.addUserMessage(createUserMessage("msg-1", "Hello"))
+
+        handler.updateMessageStatus("nonexistent", MessageStatus.FAILED)
+
+        assertEquals(1, handler.messages.value.size)
+        assertEquals(MessageStatus.SENT, handler.messages.value[0].status)
+    }
+
+    @Test
+    fun updateMessageStatus_preservedAcrossUnrelatedMutations() {
+        handler.addUserMessage(createUserMessage("msg-1", "First"))
+        handler.addUserMessage(createUserMessage("msg-2", "Second"))
+        handler.updateMessageStatus("msg-1", MessageStatus.FAILED)
+
+        // Mutate msg-2 via onTextDelta
+        handler.onTextDelta("assist-1", "delta")
+
+        // msg-1 status should be preserved
+        val msg1 = handler.messages.value.find { it.id == "msg-1" }
+        assertNotNull(msg1)
+        assertEquals(MessageStatus.FAILED, msg1!!.status)
+    }
+
+    @Test
+    fun updateMessageStatus_concurrentRapidUpdatesDoNotCorruptListOrder() = runTest {
+        repeat(100) { i ->
+            handler.addUserMessage(createUserMessage("msg-$i", "content-$i"))
+        }
+
+        // Rapidly update status on all 100 messages
+        repeat(100) { i ->
+            handler.updateMessageStatus("msg-$i", MessageStatus.SENDING)
+        }
+        repeat(100) { i ->
+            handler.updateMessageStatus("msg-$i", MessageStatus.SENT)
+        }
+        repeat(100) { i ->
+            handler.updateMessageStatus("msg-$i", MessageStatus.FAILED)
+        }
+
+        val messages = handler.messages.value
+        assertEquals(100, messages.size)
+        // Verify order is preserved: msg-0, msg-1, ... msg-99
+        repeat(100) { i ->
+            assertEquals("msg-$i", messages[i].id)
+            assertEquals(MessageStatus.FAILED, messages[i].status)
+        }
     }
 
     // --- Helper ---

@@ -334,4 +334,56 @@ class ChatMessageTest {
         val b = ChatSession(sessionId = "s1", title = "Test", model = "gpt-4")
         assertEquals(a, b)
     }
+
+    // --- MessageStatus enum ---
+
+    @Test
+    fun messageStatus_defaultIsSent() {
+        val msg = ChatMessage(
+            id = "msg-1",
+            role = MessageRole.USER,
+            content = "Hello",
+            timestamp = 1700000000L
+        )
+        assertEquals(MessageStatus.SENT, msg.status)
+    }
+
+    @Test
+    fun messageStatus_explicitSending_buildsCorrectly() {
+        val msg = ChatMessage(
+            id = "msg-1",
+            role = MessageRole.USER,
+            content = "Hello",
+            timestamp = 1700000000L,
+            status = MessageStatus.SENDING
+        )
+        assertEquals(MessageStatus.SENDING, msg.status)
+    }
+
+    @Test
+    fun messageStatus_copyPreservesNonDefaultStatus() {
+        val original = ChatMessage(
+            id = "msg-1",
+            role = MessageRole.USER,
+            content = "Hello",
+            timestamp = 1700000000L,
+            status = MessageStatus.FAILED
+        )
+        val copy = original.copy(content = "Updated")
+        assertEquals(MessageStatus.FAILED, copy.status)
+    }
+
+    @Test
+    fun messageStatus_valuesHasExactlyThreeEntries() {
+        val values = MessageStatus.values()
+        assertEquals(3, values.size)
+    }
+
+    @Test
+    fun messageStatus_enumOrdering() {
+        val values = MessageStatus.values()
+        assertEquals(MessageStatus.SENDING, values[0])
+        assertEquals(MessageStatus.SENT, values[1])
+        assertEquals(MessageStatus.FAILED, values[2])
+    }
 }
