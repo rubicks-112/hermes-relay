@@ -189,7 +189,7 @@ class EndpointResolverTest {
         )
 
         // Stage 3: advance past TTL + re-probe. Now the server's 200 lands.
-        clockMillis.set(35_000L)
+        clockMillis.set(65_000L)
         val third = resolver.resolve(listOf(lan))
         assertNotNull("after TTL expiry, resolver re-probes and sees 200", third)
         assertTrue(
@@ -227,7 +227,7 @@ class EndpointResolverTest {
         // prove the probe actually ran against the live socket (cache
         // return would have stayed reachable).
         reachableServer.dispatcher = healthDispatcher(statusCode = 500)
-        clockMillis.set(40_000L)
+        clockMillis.set(70_000L)
         val third = resolver.resolve(listOf(lan))
         assertNull("after TTL, fresh probe sees 500 → null", third)
         assertTrue(

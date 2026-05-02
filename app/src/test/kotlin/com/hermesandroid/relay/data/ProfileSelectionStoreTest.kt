@@ -4,11 +4,10 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -39,7 +38,9 @@ class ProfileSelectionStoreTest {
 
     @Before
     fun setUp() {
-        scope = TestScope(StandardTestDispatcher() + Job())
+        // Use a real IO dispatcher (not a TestScope) so DataStore's internal
+        // coroutines don't trigger UncompletedCoroutinesError in runTest.
+        scope = CoroutineScope(Dispatchers.IO + Job())
         val file: File = tempFolder.newFile("profile_selections_test.preferences_pb")
         // PreferenceDataStoreFactory requires the backing file NOT exist yet;
         // TemporaryFolder.newFile() creates it, so we delete first.
