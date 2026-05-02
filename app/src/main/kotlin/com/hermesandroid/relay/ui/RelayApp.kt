@@ -11,9 +11,11 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -33,11 +35,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -283,6 +291,7 @@ private val bottomNavScreens = listOf(
     Screen.Settings
 )
 
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 fun RelayApp() {
     val connectionViewModel: ConnectionViewModel = viewModel()
@@ -606,6 +615,10 @@ fun RelayApp() {
         val imeBottom = WindowInsets.ime.getBottom(density)
         val isKeyboardVisible = imeBottom > 0
 
+        val activity = context as? android.app.Activity
+        val windowSizeClass = activity?.let { calculateWindowSizeClass(it) }
+        val isCompact = windowSizeClass?.widthSizeClass == WindowWidthSizeClass.Compact
+
         // Voice mode is a full-screen modality — while it's active we hide the
         // bottom navigation bar so the voice overlay can own the entire screen
         // without the Chat/Terminal/Bridge/Settings tabs peeking through below.
@@ -733,109 +746,178 @@ fun RelayApp() {
         // "Multi-connection switcher" block. Keeps the top chrome tidy and
         // puts the control next to the related Profile + Personality
         // radios.)
-        Scaffold(
-            // weight(1f) instead of fillMaxSize(): Column arranges children
-            // top-down, so a fillMaxSize child would try to claim the full
-            // parent height and overflow past the banner. weight(1f) takes
-            // exactly the remaining main-axis space after the banner (which
-            // is 0 when the banner is hidden).
-            //
-            // consumeWindowInsets is conditional on banner visibility: the
-            // banner pads itself for WindowInsets.statusBars, and without
-            // this consume, child TopAppBars (e.g. ChatScreen's) also pad
-            // for status bars — yielding ~24dp of double-padding between
-            // the banner and the first row of screen content. When the
-            // banner is hidden we want the default behavior (TopAppBar
-            // self-pads below the status bar).
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .then(
-                    // Any banner / chip sitting above the Scaffold that
-                    // pads itself for the status bar means child TopAppBars
-                    // would otherwise double-pad and render too far down.
-                    // Consume the inset here so the Scaffold tree treats
-                    // the top edge as already handled.
-                    if (showUnattendedBanner || connectionChipVisible) {
-                        Modifier.consumeWindowInsets(WindowInsets.statusBars)
+        ) {
+            if (!isCompact && !isOnboarding && !voiceUiState.voiceMode) {
+                NavigationRail(
+                    containerColor = if (isDarkTheme) {
+                        Color(0xFF1A1A2E).copy(alpha = 0.9f)
                     } else {
-                        Modifier
-                    }
-                ),
-            contentWindowInsets = WindowInsets(0),
-            snackbarHost = { SnackbarHost(snackbarHostState) },
-            bottomBar = {
-                if (!isOnboarding && !isKeyboardVisible && !voiceUiState.voiceMode) {
-                    NavigationBar(
-                        containerColor = if (isDarkTheme) {
-                            Color(0xFF1A1A2E).copy(alpha = 0.9f)
-                        } else {
-                            MaterialTheme.colorScheme.surface
-                        }
-                    ) {
-                        val currentDestination = navBackStackEntry?.destination
+                        MaterialTheme.colorScheme.surface
+                    },
+                    modifier = Modifier.fillMaxHeight(),
+                ) {
+                    val currentDestination = navBackStackEntry?.destination
 
-                        bottomNavScreens.forEach { screen ->
-                            val isSelected = currentDestination?.hierarchy?.any {
-                                it.route == screen.route
-                            } == true
+                    bottomNavScreens.forEach { screen ->
+                        val isSelected = currentDestination?.hierarchy?.any {
+                            it.route == screen.route
+                        } == true
 
-                            NavigationBarItem(
-                                icon = {
-                                    Box(
-                                        modifier = if (isSelected && isDarkTheme) {
-                                            Modifier.purpleGlow(
-                                                radius = 18.dp,
-                                                alpha = 0.4f,
-                                                isDarkTheme = true
-                                            )
-                                        } else Modifier
-                                    ) {
-                                        Icon(
-                                            imageVector = screen.icon,
-                                            contentDescription = screen.label
+                        NavigationRailItem(
+                            icon = {
+                                Box(
+                                    modifier = if (isSelected && isDarkTheme) {
+                                        Modifier.purpleGlow(
+                                            radius = 18.dp,
+                                            alpha = 0.4f,
+                                            isDarkTheme = true
                                         )
-                                    }
-                                },
-                                label = { Text(screen.label) },
-                                selected = isSelected,
-                                colors = if (isDarkTheme) {
-                                    NavigationBarItemDefaults.colors(
-                                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                                        indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                    } else Modifier
+                                ) {
+                                    Icon(
+                                        imageVector = screen.icon,
+                                        contentDescription = screen.label
                                     )
-                                } else {
-                                    NavigationBarItemDefaults.colors()
-                                },
-                                onClick = {
-                                    // Chat's route is a template with an
-                                    // optional `?openAgentSheet` arg — always
-                                    // navigate to the concrete bare-"chat"
-                                    // URI from bottom nav so we don't leak
-                                    // the `{openAgentSheet}` placeholder into
-                                    // the destination and so tab-switching
-                                    // never re-opens the AgentInfoSheet.
-                                    val target = when (screen) {
-                                        is Screen.Chat -> Screen.Chat.route(openAgentSheet = false)
-                                        else -> screen.route
-                                    }
-                                    navController.navigate(target) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
                                 }
-                            )
-                        }
+                            },
+                            label = { Text(screen.label) },
+                            selected = isSelected,
+                            colors = if (isDarkTheme) {
+                                NavigationRailItemDefaults.colors(
+                                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                                    indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            } else {
+                                NavigationRailItemDefaults.colors()
+                            },
+                            onClick = {
+                                val target = when (screen) {
+                                    is Screen.Chat -> Screen.Chat.route(openAgentSheet = false)
+                                    else -> screen.route
+                                }
+                                navController.navigate(target) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        )
                     }
                 }
             }
-        ) { innerPadding ->
+
+            Scaffold(
+                // weight(1f) instead of fillMaxSize(): Column arranges children
+                // top-down, so a fillMaxSize child would try to claim the full
+                // parent height and overflow past the banner. weight(1f) takes
+                // exactly the remaining main-axis space after the banner (which
+                // is 0 when the banner is hidden).
+                //
+                // consumeWindowInsets is conditional on banner visibility: the
+                // banner pads itself for WindowInsets.statusBars, and without
+                // this consume, child TopAppBars (e.g. ChatScreen's) also pad
+                // for status bars — yielding ~24dp of double-padding between
+                // the banner and the first row of screen content. When the
+                // banner is hidden we want the default behavior (TopAppBar
+                // self-pads below the status bar).
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .weight(1f)
+                    .then(
+                        // Any banner / chip sitting above the Scaffold that
+                        // pads itself for the status bar means child TopAppBars
+                        // would otherwise double-pad and render too far down.
+                        // Consume the inset here so the Scaffold tree treats
+                        // the top edge as already handled.
+                        if (showUnattendedBanner || connectionChipVisible) {
+                            Modifier.consumeWindowInsets(WindowInsets.statusBars)
+                        } else {
+                            Modifier
+                        }
+                    ),
+                contentWindowInsets = WindowInsets(0),
+                snackbarHost = { SnackbarHost(snackbarHostState) },
+                bottomBar = {
+                    if (isCompact && !isOnboarding && !isKeyboardVisible && !voiceUiState.voiceMode) {
+                        NavigationBar(
+                            containerColor = if (isDarkTheme) {
+                                Color(0xFF1A1A2E).copy(alpha = 0.9f)
+                            } else {
+                                MaterialTheme.colorScheme.surface
+                            }
+                        ) {
+                            val currentDestination = navBackStackEntry?.destination
+
+                            bottomNavScreens.forEach { screen ->
+                                val isSelected = currentDestination?.hierarchy?.any {
+                                    it.route == screen.route
+                                } == true
+
+                                NavigationBarItem(
+                                    icon = {
+                                        Box(
+                                            modifier = if (isSelected && isDarkTheme) {
+                                                Modifier.purpleGlow(
+                                                    radius = 18.dp,
+                                                    alpha = 0.4f,
+                                                    isDarkTheme = true
+                                                )
+                                            } else Modifier
+                                        ) {
+                                            Icon(
+                                                imageVector = screen.icon,
+                                                contentDescription = screen.label
+                                            )
+                                        }
+                                    },
+                                    label = { Text(screen.label) },
+                                    selected = isSelected,
+                                    colors = if (isDarkTheme) {
+                                        NavigationBarItemDefaults.colors(
+                                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                                            indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    } else {
+                                        NavigationBarItemDefaults.colors()
+                                    },
+                                    onClick = {
+                                        // Chat's route is a template with an
+                                        // optional `?openAgentSheet` arg — always
+                                        // navigate to the concrete bare-"chat"
+                                        // URI from bottom nav so we don't leak
+                                        // the `{openAgentSheet}` placeholder into
+                                        // the destination and so tab-switching
+                                        // never re-opens the AgentInfoSheet.
+                                        val target = when (screen) {
+                                            is Screen.Chat -> Screen.Chat.route(openAgentSheet = false)
+                                            else -> screen.route
+                                        }
+                                        navController.navigate(target) {
+                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            ) { innerPadding ->
             CompositionLocalProvider(LocalSnackbarHost provides snackbarHostState) {
             val bottomNavRoutes = setOf(
                 Screen.Chat.route,
@@ -1345,6 +1427,7 @@ fun RelayApp() {
             }
             } // end CompositionLocalProvider
         }
+        } // end Row
         } // end Column (wraps banner + Scaffold)
 
         // (The ConnectionSwitcherSheet modal that used to live here was
