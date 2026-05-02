@@ -1812,6 +1812,18 @@ class ChatHandler {
     fun setLastSentMessage(text: String) {
         _lastSentMessage.value = text
     }
+
+    /**
+     * Update the [MessageStatus] of the message matching [messageId].
+     * No-op if the message is not found.
+     */
+    fun updateMessageStatus(messageId: String, status: com.hermesandroid.relay.data.MessageStatus) {
+        _messages.update { messages ->
+            messages.map { msg ->
+                if (msg.id == messageId) msg.copy(status = status) else msg
+            }
+        }
+    }
 }
 
 /**

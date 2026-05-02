@@ -22,6 +22,12 @@ enum class AttachmentState { LOADING, LOADED, FAILED }
  */
 enum class AttachmentRenderMode { IMAGE, VIDEO, AUDIO, PDF, TEXT, GENERIC }
 
+enum class MessageStatus {
+    SENDING,   // User message submitted, waiting for server ack
+    SENT,      // Successfully delivered / streaming started
+    FAILED,    // Network error or non-2xx response
+}
+
 data class ChatMessage(
     val id: String,
     val role: MessageRole,
@@ -77,7 +83,8 @@ data class ChatMessage(
      * to true via [com.hermesandroid.relay.network.handlers.ChatHandler.markVoiceIntentsSynced]
      * so they're not re-sent on the next turn.
      */
-    val voiceIntent: VoiceIntentTrace? = null
+    val voiceIntent: VoiceIntentTrace? = null,
+    val status: MessageStatus = MessageStatus.SENT,
 )
 
 /**

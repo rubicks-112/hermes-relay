@@ -12,4 +12,9 @@
     <!-- === PHASE3-notif-listener: notification companion service label === -->
     <string name="notification_companion_label">Hermes-Relay notification companion</string>
     <!-- === END PHASE3-notif-listener === -->
+    <string-array name="chat_suggestions">
+        <item>What can you do?</item>
+        <item>Help me code</item>
+        <item>Explain something</item>
+    </string-array>
 </resources>

@@ -91,6 +91,7 @@ import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -1010,11 +1011,7 @@ fun ChatScreen(
             }
             // Message list or empty state
             else if (messages.isEmpty() && !isStreaming && !isLoadingHistory) {
-                val suggestions = listOf(
-                    "What can you do?",
-                    "Help me code",
-                    "Explain something"
-                )
+                val suggestions = stringArrayResource(R.array.chat_suggestions).toList()
 
                 Box(
                     modifier = Modifier
@@ -1196,6 +1193,18 @@ fun ChatScreen(
                                                 duration = SnackbarDuration.Short
                                             )
                                         }
+                                    },
+                                    onShareMessage = { text ->
+                                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(Intent.EXTRA_TEXT, text)
+                                        }
+                                        context.startActivity(
+                                            Intent.createChooser(shareIntent, "Share message")
+                                        )
+                                    },
+                                    onRetryMessage = { text ->
+                                        chatViewModel.sendMessage(text)
                                     }
                                 )
     

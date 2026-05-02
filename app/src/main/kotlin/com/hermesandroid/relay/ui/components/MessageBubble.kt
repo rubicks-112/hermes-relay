@@ -19,12 +19,20 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -41,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import com.hermesandroid.relay.data.ChatMessage
 import com.hermesandroid.relay.data.HermesCardAction
 import com.hermesandroid.relay.data.MessageRole
+import com.hermesandroid.relay.data.MessageStatus
 import com.hermesandroid.relay.ui.theme.leftEdgeGlow
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -56,6 +65,8 @@ fun MessageBubble(
     isFirstInGroup: Boolean = true,
     isLastInGroup: Boolean = true,
     onCopyMessage: (String) -> Unit = {},
+    onShareMessage: (String) -> Unit = {},
+    onRetryMessage: (String) -> Unit = {},
     /**
      * Invoked when the user taps a FAILED inbound attachment card.
      * `attachmentIndex` is the position in [ChatMessage.attachments] so the
@@ -273,14 +284,60 @@ fun MessageBubble(
                     )
                 }
 
-                // Timestamp
+                // Timestamp + status / actions
                 if (isLastInGroup) {
                     Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = timeFormat.format(Date(message.timestamp)),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = textColor.copy(alpha = 0.5f)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = timeFormat.format(Date(message.timestamp)),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = textColor.copy(alpha = 0.5f)
+                        )
+                        if (isUser && message.status != MessageStatus.SENT) {
+                            val (icon, tint) = when (message.status) {
+                                MessageStatus.SENDING -> Icons.Filled.Schedule to MaterialTheme.colorScheme.onSurfaceVariant
+                                MessageStatus.FAILED -> Icons.Filled.ErrorOutline to MaterialTheme.colorScheme.error
+                                else -> null to null
+                            }
+                            if (icon != null && tint != null) {
+                                Icon(
+                                    icon,
+                                    contentDescription = message.status.name,
+                                    tint = tint,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        }
+                        if (isUser) {
+                            IconButton(
+                                onClick = { onShareMessage(message.content) },
+                                modifier = Modifier.size(18.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Share,
+                                    contentDescription = "Share",
+                                    modifier = Modifier.size(14.dp),
+                                    tint = textColor.copy(alpha = 0.5f)
+                                )
+                            }
+                            if (message.status == MessageStatus.FAILED) {
+                                IconButton(
+                                    onClick = { onRetryMessage(message.content) },
+                                    modifier = Modifier.size(18.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Refresh,
+                                        contentDescription = "Retry",
+                                        modifier = Modifier.size(14.dp),
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
 
                 // Token display (assistant messages only)

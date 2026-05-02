@@ -13,6 +13,7 @@ import com.hermesandroid.relay.data.ChatSession
 import com.hermesandroid.relay.data.MediaSettings
 import com.hermesandroid.relay.data.MediaSettingsRepository
 import com.hermesandroid.relay.data.MessageRole
+import com.hermesandroid.relay.data.MessageStatus
 import com.hermesandroid.relay.data.Profile
 import com.hermesandroid.relay.data.ToolCallEvent
 import com.hermesandroid.relay.network.HermesApiClient
@@ -629,7 +630,8 @@ class ChatViewModel : ViewModel() {
                 role = MessageRole.USER,
                 content = text.trim(),
                 timestamp = System.currentTimeMillis(),
-                attachments = attachments ?: emptyList()
+                attachments = attachments ?: emptyList(),
+                status = MessageStatus.SENDING
             )
         )
         handler.setLastSentMessage(text.trim())
@@ -638,9 +640,9 @@ class ChatViewModel : ViewModel() {
         val sessionId = handler.currentSessionId.value
 
         if (streamingEndpoint == "runs") {
-            startStream(client, handler, sessionId ?: "", text.trim(), assistantMessageId, attachments)
+            startStream(client, handler, sessionId ?: "", text.trim(), assistantMessageId, messageId, attachments)
         } else if (sessionId != null) {
-            startStream(client, handler, sessionId, text.trim(), assistantMessageId, attachments)
+            startStream(client, handler, sessionId, text.trim(), assistantMessageId, messageId, attachments)
         } else {
             viewModelScope.launch {
                 val session = client.createSession()
@@ -653,7 +655,7 @@ class ChatViewModel : ViewModel() {
                     handler.addSession(chatSession)
                     handler.setSessionId(session.id)
                     onSessionChanged?.invoke(session.id)
-                    startStream(client, handler, session.id, text.trim(), assistantMessageId, attachments)
+                    startStream(client, handler, session.id, text.trim(), assistantMessageId, messageId, attachments)
 
                     // Auto-title: use first ~50 chars of user message
                     val autoTitle = text.trim().take(50).let {
@@ -662,6 +664,7 @@ class ChatViewModel : ViewModel() {
                     client.renameSession(session.id, autoTitle)
                     handler.renameSessionLocal(session.id, autoTitle)
                 } else {
+                    handler.updateMessageStatus(messageId, MessageStatus.FAILED)
                     handler.onStreamError("Failed to create chat session")
                     emitError(Exception("Failed to create chat session"), context = "send_message")
                 }
@@ -695,6 +698,7 @@ class ChatViewModel : ViewModel() {
         sessionId: String,
         message: String,
         assistantMessageId: String,
+        userMessageId: String,
         attachments: List<Attachment>? = null
     ) {
         // Resolve the active profile pick once — used below for both
@@ -827,6 +831,7 @@ class ChatViewModel : ViewModel() {
                 // Don't surface cancellation errors
             } else {
                 AppAnalytics.onStreamError()
+                handler.updateMessageStatus(userMessageId, MessageStatus.FAILED)
                 handler.onStreamError(errorMsg)
                 // Keep the in-place error banner AND push to the global
                 // snackbar — classifier wraps the string into a throwable
@@ -928,6 +933,7 @@ class ChatViewModel : ViewModel() {
                 modelOverride = modelOverride,
             )
         }
+        handler.updateMessageStatus(userMessageId, MessageStatus.SENT)
 
         // Flip syncedToServer=true on every voice-intent trace AND every
         // card dispatch now that the API client owns the request.
