@@ -368,6 +368,7 @@ def _public_endpoint(
     public_url: str,
     relay_port: int,
     priority: int,
+    relay_code: str | None = None,
 ) -> dict[str, Any]:
     """Parse ``--public-url`` into a ``role: public`` candidate.
 
@@ -406,14 +407,17 @@ def _public_endpoint(
         # :443 are typical; the operator can override via --public-url
         # with an explicit path if the proxy rewrites.
         relay_url = f"{relay_scheme}://{host}:{relay_port}"
+    relay_block: dict[str, Any] = {
+        "url": relay_url,
+        "transport_hint": relay_scheme,
+    }
+    if relay_code:
+        relay_block["code"] = relay_code
     return {
         "role": "public",
         "priority": priority,
         "api": {"host": host, "port": api_port, "tls": tls},
-        "relay": {
-            "url": relay_url,
-            "transport_hint": relay_scheme,
-        },
+        "relay": relay_block,
     }
 
 

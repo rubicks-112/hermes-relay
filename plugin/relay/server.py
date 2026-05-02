@@ -359,7 +359,7 @@ async def handle_pairing_mint(request: web.Request) -> web.Response:
 
     server: RelayServer = request.app["server"]
 
-    from ..pair import build_payload, _relay_lan_base_url, _resolve_lan_ip
+    from ..pair import build_payload, build_endpoint_candidates, _relay_lan_base_url, _resolve_lan_ip
 
     # ── API server info (top-level of the QR payload) ────────────────────
     # Defaults come from ``RelayConfig.webapi_url`` (the Hermes API gateway
@@ -456,6 +456,27 @@ async def handle_pairing_mint(request: web.Request) -> web.Response:
         relay_block["grants"] = grants
     if transport_hint is not None:
         relay_block["transport_hint"] = transport_hint
+
+    # ── Auto-build v3 endpoints when caller didn't supply them ───────────
+    if endpoints_list is None:
+        try:
+            auto_endpoints = build_endpoint_candidates(
+                mode="auto",
+                api_host=api_host,
+                api_port=api_port,
+                api_tls=api_tls,
+                relay_host=server.config.host,
+                relay_port=server.config.port,
+                relay_tls=relay_tls,
+                prefer="tailscale",
+                relay_code=code,
+            )
+            if auto_endpoints:
+                endpoints_list = auto_endpoints
+        except Exception:
+            logger.exception(
+                "Endpoint auto-detection failed; falling back to single-endpoint"
+            )
 
     qr_payload = build_payload(
         host=api_host,

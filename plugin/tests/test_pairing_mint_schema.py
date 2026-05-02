@@ -101,23 +101,47 @@ class PairingMintSchemaTests(AioHTTPTestCase):
         self.assertEqual(relay["ttl_seconds"], 3600)
         self.assertEqual(relay["transport_hint"], "ws")
 
-    async def test_hermes_version_is_v2_when_metadata_present(self) -> None:
+    async def test_hermes_version_is_v3_when_metadata_present(self) -> None:
         result = await self._mint({"ttl_seconds": 3600})
         qr = json.loads(result["qr_payload"])
-        self.assertEqual(qr["hermes"], 2)
+        self.assertEqual(qr["hermes"], 3, "auto-built endpoints → version 3")
 
-    async def test_mint_without_endpoints_stays_v2_shape(self) -> None:
-        """Regression: mint bodies without ``endpoints`` must not bump to v3.
+    async def test_mint_without_endpoints_auto_builds_lan(self) -> None:
+        """When the caller doesn't provide endpoints and Tailscale is not
+        available, the server auto-builds a v3 payload with a LAN candidate."""
+        from plugin.relay import tailscale as ts_mod
+        import unittest.mock as mock
 
-        Preserves backward compat so phones parsing v2 (pre-ADR 24)
-        don't see an unexpected version bump whenever the dashboard
-        hits /pairing/mint without explicitly opting into multi-endpoint.
-        """
-        result = await self._mint({"ttl_seconds": 3600})
+        with mock.patch.object(ts_mod, "status", return_value=None):
+            result = await self._mint({"ttl_seconds": 3600})
         qr = json.loads(result["qr_payload"])
-        self.assertEqual(qr["hermes"], 2)
-        self.assertNotIn("endpoints", qr)
-        self.assertNotIn("endpoints", result)
+        self.assertEqual(qr["hermes"], 3, "auto-built endpoints → version 3")
+        self.assertIn("endpoints", qr)
+        self.assertEqual(len(qr["endpoints"]), 1)
+        self.assertEqual(qr["endpoints"][0]["role"], "lan")
+        self.assertEqual(qr["endpoints"][0]["priority"], 0)
+
+    async def test_mint_auto_builds_tailscale_primary(self) -> None:
+        """When Tailscale is available, auto-built endpoints list Tailscale
+        as priority 0 and LAN as priority 1."""
+        from plugin.relay import tailscale as ts_mod
+        import unittest.mock as mock
+
+        fake_status = {
+            "available": True,
+            "hostname": "test.tail-xyz.ts.net",
+            "tailscale_ip": "100.64.0.1",
+            "serve_ports": [],
+        }
+        with mock.patch.object(ts_mod, "status", return_value=fake_status):
+            result = await self._mint({"ttl_seconds": 3600})
+        qr = json.loads(result["qr_payload"])
+        self.assertEqual(qr["hermes"], 3)
+        self.assertIn("endpoints", qr)
+        roles = [e["role"] for e in qr["endpoints"]]
+        self.assertEqual(roles, ["tailscale", "lan"])
+        priorities = [e["priority"] for e in qr["endpoints"]]
+        self.assertEqual(priorities, [0, 1])
 
     async def test_mint_with_endpoints_round_trips_verbatim(self) -> None:
         """ADR 24: mint echoes ``endpoints`` array byte-for-byte.
