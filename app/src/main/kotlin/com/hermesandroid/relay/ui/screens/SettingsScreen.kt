@@ -368,7 +368,7 @@ fun SettingsScreen(
  * three tokens with a middle-dot separator.
  */
 @Composable
-private fun ActiveAgentCard(
+internal fun ActiveAgentCard(
     agentName: String,
     connectionLabel: String,
     model: String,

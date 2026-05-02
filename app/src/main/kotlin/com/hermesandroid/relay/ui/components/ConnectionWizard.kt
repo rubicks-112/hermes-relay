@@ -892,7 +892,7 @@ private fun relayUrlSchemeError(url: String): String? {
 }
 
 @Composable
-private fun ManualEntryStep(
+internal fun ManualEntryStep(
     apiUrl: String,
     onApiUrlChange: (String) -> Unit,
     relayUrl: String,
@@ -1627,7 +1627,7 @@ private fun ConfirmStep(
 }
 
 @Composable
-private fun VerifyStep(
+internal fun VerifyStep(
     authState: AuthState,
     error: String?,
     onRetry: () -> Unit,

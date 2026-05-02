@@ -8,7 +8,10 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.hermesandroid.relay.ui.theme.HermesRelayTheme
+import com.hermesandroid.relay.viewmodel.ConnectionViewModel
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 
@@ -25,9 +28,11 @@ class OnboardingFlowTest {
 
     private fun setOnboardingContent() {
         composeTestRule.setContent {
+            val connectionViewModel = viewModel<ConnectionViewModel>()
             HermesRelayTheme {
                 OnboardingScreen(
-                    onComplete = { _, _, _ -> }
+                    connectionViewModel = connectionViewModel,
+                    onComplete = {},
                 )
             }
         }

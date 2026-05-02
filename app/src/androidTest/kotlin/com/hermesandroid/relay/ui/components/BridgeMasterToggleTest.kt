@@ -1,10 +1,9 @@
 package com.hermesandroid.relay.ui.components
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.test.assertIsOff
-import androidx.compose.ui.test.isToggleable
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNode
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -50,12 +49,8 @@ class BridgeMasterToggleTest {
             }
         }
 
-        // The Switch is the only toggleable node in this composable — find it
-        // without relying on an accessibility label (the design spec doesn't
-        // currently give the Switch one) to avoid flakiness if the label
-        // changes.
-        composeTestRule.onNode(isToggleable()).assertIsOff()
-        composeTestRule.onNode(isToggleable()).performClick()
+        composeTestRule.onNodeWithContentDescription("Agent Control master toggle").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Agent Control master toggle").performClick()
         composeTestRule.waitForIdle()
 
         assertEquals(
@@ -103,7 +98,7 @@ class BridgeMasterToggleTest {
             }
         }
 
-        composeTestRule.onNode(isToggleable()).performClick()
+        composeTestRule.onNodeWithContentDescription("Agent Control master toggle").performClick()
         composeTestRule.waitForIdle()
 
         assertEquals("onToggle must fire exactly once", 1, toggleCalls)
@@ -139,7 +134,7 @@ class BridgeMasterToggleTest {
             }
         }
 
-        composeTestRule.onNode(isToggleable()).performClick()
+        composeTestRule.onNodeWithContentDescription("Agent Control master toggle").performClick()
         composeTestRule.waitForIdle()
 
         assertEquals("onToggle must fire exactly once", 1, toggleCalls)
