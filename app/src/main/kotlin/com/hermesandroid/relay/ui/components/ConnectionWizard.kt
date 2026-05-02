@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -32,6 +34,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.PhonelinkLock
@@ -68,8 +71,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -327,7 +332,9 @@ fun ConnectionWizard(
         modifier = modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .navigationBarsPadding()
+            .imePadding(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         WizardStepIndicator(currentStep = step.indicatorIndex, method = chosenMethod)
@@ -929,6 +936,17 @@ private fun ManualEntryStep(
                 Text(apiError ?: "Hermes API — chat and sessions (default port 8642)")
             },
             modifier = Modifier.fillMaxWidth(),
+            trailingIcon = {
+                val clipboard = LocalClipboardManager.current
+                IconButton(onClick = {
+                    clipboard.getText()?.let { onApiUrlChange(it.text) }
+                }) {
+                    Icon(
+                        imageVector = Icons.Filled.ContentPaste,
+                        contentDescription = "Paste URL",
+                    )
+                }
+            },
         )
 
         OutlinedTextField(
@@ -942,6 +960,17 @@ private fun ManualEntryStep(
                 Text(relayError ?: "Hermes Relay — bridge, voice, terminal (default port 8767)")
             },
             modifier = Modifier.fillMaxWidth(),
+            trailingIcon = {
+                val clipboard = LocalClipboardManager.current
+                IconButton(onClick = {
+                    clipboard.getText()?.let { onRelayUrlChange(it.text) }
+                }) {
+                    Icon(
+                        imageVector = Icons.Filled.ContentPaste,
+                        contentDescription = "Paste URL",
+                    )
+                }
+            },
         )
 
         OutlinedTextField(
@@ -961,6 +990,17 @@ private fun ManualEntryStep(
                 onGo = { if (canSubmit) onSubmit() },
             ),
             modifier = Modifier.fillMaxWidth(),
+            trailingIcon = {
+                val clipboard = LocalClipboardManager.current
+                IconButton(onClick = {
+                    clipboard.getText()?.let { onCodeChange(it.text) }
+                }) {
+                    Icon(
+                        imageVector = Icons.Filled.ContentPaste,
+                        contentDescription = "Paste code",
+                    )
+                }
+            },
         )
 
         Row(
@@ -1029,6 +1069,17 @@ private fun ShowCodeStep(
                 Text(apiError ?: "Hermes API — chat and sessions (default port 8642)")
             },
             modifier = Modifier.fillMaxWidth(),
+            trailingIcon = {
+                val clipboard = LocalClipboardManager.current
+                IconButton(onClick = {
+                    clipboard.getText()?.let { onApiUrlChange(it.text) }
+                }) {
+                    Icon(
+                        imageVector = Icons.Filled.ContentPaste,
+                        contentDescription = "Paste URL",
+                    )
+                }
+            },
         )
 
         OutlinedTextField(
@@ -1042,6 +1093,17 @@ private fun ShowCodeStep(
                 Text(relayError ?: "Hermes Relay — bridge, voice, terminal (default port 8767)")
             },
             modifier = Modifier.fillMaxWidth(),
+            trailingIcon = {
+                val clipboard = LocalClipboardManager.current
+                IconButton(onClick = {
+                    clipboard.getText()?.let { onRelayUrlChange(it.text) }
+                }) {
+                    Icon(
+                        imageVector = Icons.Filled.ContentPaste,
+                        contentDescription = "Paste URL",
+                    )
+                }
+            },
         )
 
         HorizontalDivider()
@@ -1593,6 +1655,10 @@ private fun VerifyStep(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Spacer(Modifier.height(16.dp))
+            TextButton(onClick = onCancel) {
+                Text("Cancel")
+            }
         } else {
             Icon(
                 imageVector = Icons.Filled.ErrorOutline,

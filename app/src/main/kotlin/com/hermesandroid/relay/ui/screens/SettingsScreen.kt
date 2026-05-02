@@ -58,6 +58,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.hermesandroid.relay.data.FeatureFlags
+import com.hermesandroid.relay.network.ConnectionState
 import com.hermesandroid.relay.ui.components.AgentInfoSheet
 import com.hermesandroid.relay.ui.components.ProfileInspectorCard
 import com.hermesandroid.relay.ui.theme.gradientBorder
@@ -127,6 +128,7 @@ fun SettingsScreen(
     val isDarkTheme = isSystemInDarkTheme()
 
     val activeConnection by connectionViewModel.activeConnection.collectAsState()
+    val connectionState by connectionViewModel.relayConnectionState.collectAsState()
     // Active Agent card inputs — personality + profile drive the title,
     // ring-accent, and subtitle.
     val selectedProfile by connectionViewModel.selectedProfile.collectAsState()
@@ -192,6 +194,7 @@ fun SettingsScreen(
                     defaultPersonality = defaultPersonality,
                 ),
                 isCustomized = selectedProfile != null || selectedPersonality != "default",
+                connectionState = connectionState,
                 onClick = { showAgentSheet = true },
                 isDarkTheme = isDarkTheme,
             )
@@ -364,10 +367,23 @@ private fun ActiveAgentCard(
     model: String,
     personalityLabel: String,
     isCustomized: Boolean,
+    connectionState: ConnectionState,
     onClick: () -> Unit,
     isDarkTheme: Boolean,
 ) {
-    val subtitle = "$connectionLabel \u00B7 $model \u00B7 $personalityLabel"
+    val statusLabel = when (connectionState) {
+        ConnectionState.Connected -> "Connected"
+        ConnectionState.Connecting -> "Connecting"
+        ConnectionState.Reconnecting -> "Reconnecting"
+        ConnectionState.Disconnected -> "Disconnected"
+    }
+    val subtitle = "$connectionLabel \u00B7 $statusLabel \u00B7 $model \u00B7 $personalityLabel"
+    val cardColor = when (connectionState) {
+        ConnectionState.Connected -> MaterialTheme.colorScheme.primaryContainer
+        ConnectionState.Connecting,
+        ConnectionState.Reconnecting -> MaterialTheme.colorScheme.tertiaryContainer
+        ConnectionState.Disconnected -> MaterialTheme.colorScheme.surfaceVariant
+    }
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -376,7 +392,7 @@ private fun ActiveAgentCard(
                 isDarkTheme = isDarkTheme,
             ),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            containerColor = cardColor,
         ),
     ) {
         Row(

@@ -12,6 +12,6 @@ import androidx.datastore.preferences.preferencesDataStore
  * rather than creating its own [preferencesDataStore] delegate (multiple
  * delegates targeting the same file cause a runtime crash).
  */
-internal val Context.relayDataStore: DataStore<Preferences> by preferencesDataStore(
+val Context.relayDataStore: DataStore<Preferences> by preferencesDataStore(
     name = "relay_settings"
 )

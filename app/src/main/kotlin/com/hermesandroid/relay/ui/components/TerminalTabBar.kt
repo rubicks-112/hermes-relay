@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -84,7 +84,7 @@ fun TerminalTabBar(
         IconButton(
             onClick = onNewTab,
             enabled = canAddMore,
-            modifier = Modifier.size(32.dp),
+            modifier = Modifier.size(48.dp),
         ) {
             Icon(
                 imageVector = Icons.Filled.Add,
@@ -94,6 +94,7 @@ fun TerminalTabBar(
                 } else {
                     MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                 },
+                modifier = Modifier.size(24.dp),
             )
         }
     }
@@ -122,7 +123,7 @@ private fun TerminalTabChip(
     val shape = RoundedCornerShape(8.dp)
     Row(
         modifier = Modifier
-            .height(32.dp)
+            .heightIn(min = 48.dp)
             .clip(shape)
             .background(bg)
             .border(
@@ -165,21 +166,15 @@ private fun TerminalTabChip(
         // (last remaining tab) or on background tabs to keep the strip
         // compact.
         if (isActive && canClose) {
-            Box(
-                modifier = Modifier
-                    .size(16.dp)
-                    .clip(RoundedCornerShape(50))
-                    .combinedClickable(
-                        onClick = onCloseClick,
-                        onLongClick = onCloseClick,
-                    ),
-                contentAlignment = Alignment.Center,
+            IconButton(
+                onClick = onCloseClick,
+                modifier = Modifier.size(48.dp),
             ) {
                 Icon(
                     imageVector = Icons.Filled.Close,
                     contentDescription = "Close tab ${tab.tabId}",
                     tint = fg,
-                    modifier = Modifier.size(12.dp),
+                    modifier = Modifier.size(18.dp),
                 )
             }
         }

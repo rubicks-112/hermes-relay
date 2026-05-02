@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -203,12 +204,12 @@ private fun androidx.compose.foundation.layout.RowScope.ToolbarKey(
     Box(
         modifier = Modifier
             .weight(weight)
-            .heightIn(min = 36.dp)
-            .height(36.dp)
+            .heightIn(min = 48.dp)
             .clip(shape)
             .background(bg, shape)
             .border(width = 1.dp, color = borderColor, shape = shape)
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .minimumInteractiveComponentSize(),
         contentAlignment = Alignment.Center
     ) {
         Text(

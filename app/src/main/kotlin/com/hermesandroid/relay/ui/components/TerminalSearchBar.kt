@@ -63,12 +63,14 @@ fun TerminalSearchBar(
     var query by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
 
+    var hasFocused by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        // Defer one frame so the OutlinedTextField has been attached before
-        // requesting focus — otherwise the call no-ops on first composition.
-        try {
-            focusRequester.requestFocus()
-        } catch (_: Exception) { /* not yet attached */ }
+        if (!hasFocused) {
+            hasFocused = true
+            try {
+                focusRequester.requestFocus()
+            } catch (_: Exception) { /* not yet attached */ }
+        }
     }
 
     Row(

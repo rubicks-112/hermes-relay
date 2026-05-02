@@ -38,6 +38,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -89,9 +90,10 @@ fun TerminalScreen(
     // so it survives recompositions; entries get pruned when their tab is
     // closed.
     //
-    // We deliberately keep all live WebViews in this map (rather than
+    // We deliberately keep all live WebViews composed (rather than
     // destroying inactive ones) so per-tab terminal output keeps streaming
-    // while the user is looking at a different tab — closing a tab still
+    // while the user is looking at a different tab. Inactive WebViews are
+    // paused via onPause() to reduce memory pressure. Closing a tab still
     // releases the WebView via TerminalWebView's DisposableEffect.
     val webViewByTab = remember { mutableStateMapOf<Int, WebView>() }
 
@@ -256,18 +258,21 @@ fun TerminalScreen(
             // global font size preference.
             for (tab in tabs) {
                 val isActive = tab.tabId == activeTabId
-                TerminalWebView(
-                    viewModel = terminalViewModel,
-                    tabId = tab.tabId,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .zIndex(if (isActive) 1f else 0f)
-                        .alpha(if (isActive) 1f else 0f),
-                    fontScale = connectionViewModel.fontScale,
-                    onWebViewReady = { wv ->
-                        webViewByTab[tab.tabId] = wv
-                    },
-                )
+                key(tab.tabId) {
+                    TerminalWebView(
+                        viewModel = terminalViewModel,
+                        tabId = tab.tabId,
+                        isActive = isActive,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .zIndex(if (isActive) 1f else 0f)
+                            .alpha(if (isActive) 1f else 0f),
+                        fontScale = connectionViewModel.fontScale,
+                        onWebViewReady = { wv ->
+                            webViewByTab[tab.tabId] = wv
+                        },
+                    )
+                }
             }
 
             // Overlay priority (highest first):

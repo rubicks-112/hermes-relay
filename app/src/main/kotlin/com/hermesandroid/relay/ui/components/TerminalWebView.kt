@@ -13,6 +13,7 @@ import android.webkit.WebViewClient
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -47,6 +48,7 @@ fun TerminalWebView(
     viewModel: TerminalViewModel,
     tabId: Int,
     modifier: Modifier = Modifier,
+    isActive: Boolean = true,
     fontScale: StateFlow<Float> = remember { MutableStateFlow(1.0f) },
     onWebViewReady: ((WebView) -> Unit)? = null,
 ) {
@@ -77,7 +79,8 @@ fun TerminalWebView(
             settings.mediaPlaybackRequiresUserGesture = false
             settings.loadWithOverviewMode = false
             settings.useWideViewPort = false
-            settings.textZoom = 100 // prevent system font-size from scaling xterm
+            // System font-size scaling is left at default; the font scale is
+            // driven by fontScale flow below.
             overScrollMode = View.OVER_SCROLL_NEVER
             isVerticalScrollBarEnabled = false
             isHorizontalScrollBarEnabled = false
@@ -202,15 +205,19 @@ fun TerminalWebView(
     // index.html (`fontSize: 13`), and `window.setFontSize` already calls
     // `fitAddon.fit()` so the layout listener picks up the resulting resize
     // automatically. We coerce to a sensible minimum so a tiny scale (or a
-    // future smaller stop) can never produce sub-6px terminal glyphs.
+    // future smaller stop) can never produce sub-10px terminal glyphs.
     LaunchedEffect(webView, fontScale) {
         fontScale.collect { scale ->
-            val target = (13 * scale).toInt().coerceAtLeast(6)
+            val target = (13 * scale).toInt().coerceAtLeast(10)
             webView.evaluateJavascript(
                 "if (window.setFontSize) window.setFontSize($target);",
                 null
             )
         }
+    }
+
+    SideEffect {
+        if (isActive) webView.onResume() else webView.onPause()
     }
 
     DisposableEffect(webView) {

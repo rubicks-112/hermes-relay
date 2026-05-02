@@ -14,8 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -41,6 +40,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -95,13 +95,16 @@ fun BridgeSafetySettingsScreen(onBack: () -> Unit) {
         mutableStateOf(Settings.canDrawOverlays(context))
     }
     val lifecycleOwner = LocalLifecycleOwner.current
-    LaunchedEffect(lifecycleOwner) {
+    DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 canDrawOverlays = Settings.canDrawOverlays(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     // Cached installed-app list (expensive to call, so we do it once).
@@ -166,13 +169,13 @@ fun BridgeSafetySettingsScreen(onBack: () -> Unit) {
                             it.packageName.lowercase().contains(term)
                     }
                 }
-                LazyColumn(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = 340.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    items(filtered, key = { it.packageName }) { app ->
+                    filtered.forEach { app ->
                         val checked = app.packageName in settings.blocklist
                         Row(
                             modifier = Modifier.fillMaxWidth(),

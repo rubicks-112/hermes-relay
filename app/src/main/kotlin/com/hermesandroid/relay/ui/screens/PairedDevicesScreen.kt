@@ -595,7 +595,6 @@ private fun DeviceCard(
                     )
                     IconButton(
                         onClick = onOpenChannelInfo,
-                        modifier = Modifier.size(20.dp),
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Info,
@@ -725,10 +724,6 @@ private fun GrantChip(
             color = fg,
         )
         Spacer(Modifier.width(4.dp))
-        // Small clickable Box instead of IconButton — IconButton inflates
-        // to a 48dp touch target which would make the chip explode in
-        // FlowRow. The chip lives in a settings list, not a content feed,
-        // so the smaller touch target is acceptable for the revoke action.
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(percent = 50))
@@ -736,7 +731,7 @@ private fun GrantChip(
                     onClick = onRevoke,
                     role = androidx.compose.ui.semantics.Role.Button,
                 )
-                .padding(2.dp),
+                .padding(8.dp),
             contentAlignment = Alignment.Center,
         ) {
             Icon(

@@ -115,9 +115,14 @@ fun BridgeSafetySummaryCard(
                 label = "Auto-disable",
                 value = if (autoDisableAtMs != null) {
                     val remainMs = (autoDisableAtMs - nowMs).coerceAtLeast(0L)
-                    val remainMin = (remainMs / 60_000L).toInt()
-                    val remainSec = ((remainMs % 60_000L) / 1000L).toInt()
-                    "in ${remainMin}:${remainSec.toString().padStart(2, '0')}"
+                    val hours = remainMs / 3_600_000L
+                    val minutes = (remainMs % 3_600_000L) / 60_000L
+                    val seconds = (remainMs % 60_000L) / 1_000L
+                    when {
+                        hours > 0 -> "in ${hours}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s"
+                        minutes > 0 -> "in ${minutes}m ${seconds.toString().padStart(2, '0')}s"
+                        else -> "in ${seconds}s"
+                    }
                 } else {
                     "${settings.autoDisableMinutes} min idle"
                 },
