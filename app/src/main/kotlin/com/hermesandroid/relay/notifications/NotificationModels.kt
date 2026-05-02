@@ -29,4 +29,30 @@ data class NotificationEntry(
     @SerialName("posted_at")
     val postedAt: Long,
     val key: String,
+    val category: String? = null,
+    @SerialName("big_text")
+    val bigText: String? = null,
+    @SerialName("inbox_lines")
+    val inboxLines: List<String>? = null,
+    val actions: List<String>? = null,
+    val messages: List<NotificationMessage>? = null,
+    @SerialName("conversation_title")
+    val conversationTitle: String? = null,
+    @SerialName("has_image")
+    val hasImage: Boolean = false,
+    val progress: NotificationProgress? = null,
+)
+
+@Serializable
+data class NotificationMessage(
+    val text: String? = null,
+    val timestamp: Long,
+    val sender: String? = null,
+)
+
+@Serializable
+data class NotificationProgress(
+    val current: Int,
+    val max: Int,
+    val indeterminate: Boolean = false,
 )

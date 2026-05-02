@@ -60,11 +60,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -220,6 +224,18 @@ fun VoiceModeOverlay(
         // updates in real time through its existing MutableStateFlow, so
         // live-stream visibility is preserved.
         val transcriptScrollState = rememberScrollState()
+        var userHasScrolled by remember { mutableStateOf(false) }
+
+        val nestedScrollConnection = remember {
+            object : NestedScrollConnection {
+                override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                    if (available.y > 0) { // scrolling up
+                        userHasScrolled = true
+                    }
+                    return Offset.Zero
+                }
+            }
+        }
 
         // Derive the streaming "token length" from the last assistant message
         // in the transcript so auto-scroll follows mid-stream growth without
@@ -232,7 +248,9 @@ fun VoiceModeOverlay(
         // transcript or the last streaming assistant bubble grows. Smooth
         // animateScrollTo so the user's eye never has to chase token churn.
         LaunchedEffect(transcriptMessages.size, lastStreamingContentLength) {
-            transcriptScrollState.animateScrollTo(transcriptScrollState.maxValue)
+            if (!userHasScrolled) {
+                transcriptScrollState.animateScrollTo(transcriptScrollState.maxValue)
+            }
         }
 
         // Vertical fade brush for the scroll area: top + bottom edges fade
@@ -340,6 +358,7 @@ fun VoiceModeOverlay(
                                 drawContent()
                                 drawRect(brush = fadeBrush, blendMode = BlendMode.DstIn)
                             }
+                            .nestedScroll(nestedScrollConnection)
                             .verticalScroll(transcriptScrollState)
                             .padding(vertical = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),

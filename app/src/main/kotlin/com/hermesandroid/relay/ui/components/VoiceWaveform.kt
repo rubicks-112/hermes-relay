@@ -181,10 +181,13 @@ fun VoiceWaveform(
         // mask never bleeds onto whatever's underneath the waveform. Without
         // saveLayer the DstIn would punch a hole in the parent background.
         drawIntoCanvas { canvas ->
-            canvas.saveLayer(
-                bounds = androidx.compose.ui.geometry.Rect(0f, 0f, width, height),
-                paint = androidx.compose.ui.graphics.Paint(),
-            )
+            val needsLayer = primaryColor.alpha < 1.0f || secondaryColor.alpha < 1.0f
+            if (needsLayer) {
+                canvas.saveLayer(
+                    bounds = androidx.compose.ui.geometry.Rect(0f, 0f, width, height),
+                    paint = androidx.compose.ui.graphics.Paint(),
+                )
+            }
 
             // Draw back-to-front so wave 1 (front, full saturation) sits on top.
             for (layer in 2 downTo 0) {
@@ -250,7 +253,9 @@ fun VoiceWaveform(
                 blendMode = BlendMode.DstIn,
             )
 
-            canvas.restore()
+            if (needsLayer) {
+                canvas.restore()
+            }
         }
     }
 }

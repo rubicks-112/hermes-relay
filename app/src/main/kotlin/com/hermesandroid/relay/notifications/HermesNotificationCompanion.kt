@@ -1,7 +1,10 @@
 package com.hermesandroid.relay.notifications
 
+import android.app.Notification
+import androidx.core.app.NotificationCompat
 import android.content.ComponentName
 import android.content.Context
+import android.os.Build
 import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
@@ -123,13 +126,50 @@ class HermesNotificationCompanion : NotificationListenerService() {
         val n = notification ?: return null
         val extras = n.extras ?: return null
 
-        val title = extras.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString()
-        val text = extras.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString()
-        val sub = extras.getCharSequence(android.app.Notification.EXTRA_SUB_TEXT)?.toString()
+        val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()
+        val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()
+        val sub = extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString()
+        val bigText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString()
 
-        // Skip notifications with no human-readable content — they're
-        // usually background sync placeholders that just confuse the LLM.
-        if (title.isNullOrBlank() && text.isNullOrBlank()) return null
+        // InboxStyle lines
+        val textLines = extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
+            ?.mapNotNull { it?.toString() }
+            ?.takeIf { it.isNotEmpty() }
+
+        // Actions
+        val actionTitles = n.actions?.mapNotNull { it.title?.toString() }?.takeIf { it.isNotEmpty() }
+
+        // MessagingStyle (API 24+)
+        var messages: List<NotificationMessage>? = null
+        var conversationTitle: String? = null
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            val messagingStyle = NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(n)
+            if (messagingStyle != null) {
+                conversationTitle = messagingStyle.conversationTitle?.toString()
+                messages = messagingStyle.messages.map { msg ->
+                    NotificationMessage(
+                        text = msg.text?.toString(),
+                        timestamp = msg.timestamp,
+                        sender = msg.person?.name?.toString(),
+                    )
+                }
+            }
+        }
+
+        // Progress
+        val hasProgress = extras.containsKey(Notification.EXTRA_PROGRESS)
+        val progress = if (hasProgress) {
+            NotificationProgress(
+                current = extras.getInt(Notification.EXTRA_PROGRESS),
+                max = extras.getInt(Notification.EXTRA_PROGRESS_MAX),
+                indeterminate = extras.getBoolean(Notification.EXTRA_PROGRESS_INDETERMINATE),
+            )
+        } else null
+
+        // Image
+        val hasImage = extras.containsKey(Notification.EXTRA_PICTURE) || n.getLargeIcon() != null
+
+        if (title.isNullOrBlank() && text.isNullOrBlank() && bigText.isNullOrBlank() && messages.isNullOrEmpty()) return null
 
         return NotificationEntry(
             packageName = packageName,
@@ -138,6 +178,14 @@ class HermesNotificationCompanion : NotificationListenerService() {
             subText = sub,
             postedAt = postTime,
             key = key,
+            category = n.category,
+            bigText = bigText,
+            inboxLines = textLines,
+            actions = actionTitles,
+            messages = messages,
+            conversationTitle = conversationTitle,
+            hasImage = hasImage,
+            progress = progress,
         )
     }
 
