@@ -14,69 +14,61 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 
-// Brand palette — derived from assets/logo.svg
-private val HermesPrimary = Color(0xFF6B35E8)       // Logo primary purple
-private val HermesPrimaryLight = Color(0xFF9B6BF0)  // Logo accent purple
-private val HermesPrimaryDark = Color(0xFF4A1DB8)   // Deeper variant for containers
-private val HermesNavy = Color(0xFF1A1A2E)           // Logo background navy
-private val HermesNavySurface = Color(0xFF1E1E34)    // Slightly lifted surface
-private val HermesNavyVariant = Color(0xFF2A2A44)    // Card/surface variant
-
 private val DarkColorScheme = darkColorScheme(
-    primary = HermesPrimaryLight,
-    onPrimary = Color(0xFF1A0049),
-    primaryContainer = HermesPrimary,
-    onPrimaryContainer = Color(0xFFE8DEFF),
-    secondary = Color(0xFFB8AACC),
-    onSecondary = Color(0xFF2B2040),
-    secondaryContainer = Color(0xFF413558),
-    onSecondaryContainer = Color(0xFFE8DEFF),
-    tertiary = Color(0xFF9B6BF0),
-    onTertiary = Color(0xFF1A0049),
-    tertiaryContainer = Color(0xFF3D1F8C),
-    onTertiaryContainer = Color(0xFFE8DEFF),
-    background = HermesNavy,
-    onBackground = Color(0xFFE4E1E9),
-    surface = HermesNavySurface,
-    onSurface = Color(0xFFE4E1E9),
-    surfaceVariant = HermesNavyVariant,
-    onSurfaceVariant = Color(0xFFC9C3D4),
-    surfaceTint = HermesPrimaryLight.copy(alpha = 0.15f),
-    surfaceContainerLowest = Color(0xFF151524),
-    surfaceContainerLow = Color(0xFF1C1C30),
-    surfaceContainer = HermesNavySurface,
-    surfaceContainerHigh = Color(0xFF24243C),
-    surfaceContainerHighest = Color(0xFF2E2E48),
-    outline = Color(0xFF5A5470),
-    outlineVariant = Color(0xFF3D3854)
+    primary = HermesPurpleLight,
+    onPrimary = DarkOnPrimary,
+    primaryContainer = DarkPrimaryContainer,
+    onPrimaryContainer = DarkOnPrimaryContainer,
+    secondary = DarkSecondary,
+    onSecondary = DarkOnSecondary,
+    secondaryContainer = DarkSecondaryContainer,
+    onSecondaryContainer = DarkOnSecondaryContainer,
+    tertiary = DarkTertiary,
+    onTertiary = DarkOnTertiary,
+    tertiaryContainer = DarkTertiaryContainer,
+    onTertiaryContainer = DarkOnTertiaryContainer,
+    background = DarkBackground,
+    onBackground = DarkOnBackground,
+    surface = DarkSurface,
+    onSurface = DarkOnSurface,
+    surfaceVariant = DarkSurfaceVariant,
+    onSurfaceVariant = DarkOnSurfaceVariant,
+    surfaceTint = DarkSurfaceTint,
+    surfaceContainerLowest = DarkSurfaceContainerLowest,
+    surfaceContainerLow = DarkSurfaceContainerLow,
+    surfaceContainer = DarkSurfaceContainer,
+    surfaceContainerHigh = DarkSurfaceContainerHigh,
+    surfaceContainerHighest = DarkSurfaceContainerHighest,
+    outline = DarkOutline,
+    outlineVariant = DarkOutlineVariant
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = HermesPrimary,
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFE8DEFF),
-    onPrimaryContainer = Color(0xFF1A0049),
-    secondary = Color(0xFF5E5474),
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFE8DEFF),
-    onSecondaryContainer = Color(0xFF1B1030),
-    tertiary = HermesPrimaryDark,
-    onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFE8DEFF),
-    onTertiaryContainer = Color(0xFF1A0049),
-    background = Color(0xFFFCF8FF),
-    onBackground = Color(0xFF1B1B22),
-    surface = Color(0xFFFCF8FF),
-    onSurface = Color(0xFF1B1B22),
-    surfaceVariant = Color(0xFFEAE4F2),
-    onSurfaceVariant = Color(0xFF48444E),
-    surfaceContainerLowest = Color.White,
-    surfaceContainerLow = Color(0xFFF7F2FC),
-    surfaceContainer = Color(0xFFF1ECF6),
-    surfaceContainerHigh = Color(0xFFEBE6F0),
-    surfaceContainerHighest = Color(0xFFE5E0EA),
-    outline = Color(0xFF79747E),
-    outlineVariant = Color(0xFFCBC4D0)
+    primary = HermesPurple,
+    onPrimary = LightOnPrimary,
+    primaryContainer = LightPrimaryContainer,
+    onPrimaryContainer = LightOnPrimaryContainer,
+    secondary = LightSecondary,
+    onSecondary = LightOnSecondary,
+    secondaryContainer = LightSecondaryContainer,
+    onSecondaryContainer = LightOnSecondaryContainer,
+    tertiary = LightTertiary,
+    onTertiary = LightOnTertiary,
+    tertiaryContainer = LightTertiaryContainer,
+    onTertiaryContainer = LightOnTertiaryContainer,
+    background = LightBackground,
+    onBackground = LightOnBackground,
+    surface = LightSurface,
+    onSurface = LightOnSurface,
+    surfaceVariant = LightSurfaceVariant,
+    onSurfaceVariant = LightOnSurfaceVariant,
+    surfaceContainerLowest = LightSurfaceContainerLowest,
+    surfaceContainerLow = LightSurfaceContainerLow,
+    surfaceContainer = LightSurfaceContainer,
+    surfaceContainerHigh = LightSurfaceContainerHigh,
+    surfaceContainerHighest = LightSurfaceContainerHighest,
+    outline = LightOutline,
+    outlineVariant = LightOutlineVariant
 )
 
 @Composable
@@ -112,6 +104,7 @@ fun HermesRelayTheme(
         MaterialTheme(
             colorScheme = colorScheme,
             typography = Typography,
+            shapes = HermesShapes,
             content = content
         )
     } else {
@@ -124,6 +117,7 @@ fun HermesRelayTheme(
             MaterialTheme(
                 colorScheme = colorScheme,
                 typography = Typography,
+                shapes = HermesShapes,
                 content = content
             )
         }

@@ -13,12 +13,6 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-// Brand colors for glow effects
-private val GlowPurple = Color(0xFF9B6BF0)
-private val GlowPurpleDark = Color(0xFF6B35E8)
-private val NavySurface = Color(0xFF1E1E34)
-private val NavyDeep = Color(0xFF12121E)
-
 /**
  * Purple glow behind an element. Uses a radial gradient from purple to transparent.
  * Only applies in dark theme — in light theme this is a no-op.
@@ -77,7 +71,7 @@ fun Modifier.radialNavyBackground(
     return this.drawBehind {
         drawRect(
             brush = Brush.radialGradient(
-                colors = listOf(NavySurface, NavyDeep),
+                colors = listOf(GlowNavySurface, GlowNavyDeep),
                 center = Offset(size.width / 2f, size.height / 3f),
                 radius = size.maxDimension * 0.8f
             )

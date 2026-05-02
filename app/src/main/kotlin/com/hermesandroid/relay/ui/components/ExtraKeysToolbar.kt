@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.hermesandroid.relay.ui.theme.ShapeSmall
 import com.hermesandroid.relay.viewmodel.TerminalViewModel.SpecialKey
 
 /**
@@ -194,7 +195,7 @@ private fun androidx.compose.foundation.layout.RowScope.ToolbarKey(
     weight: Float,
     onClick: () -> Unit
 ) {
-    val shape = RoundedCornerShape(6.dp)
+    val shape = ShapeSmall
     val scheme = MaterialTheme.colorScheme
 
     val bg = if (active) scheme.primary.copy(alpha = 0.22f) else scheme.surface
@@ -215,7 +216,7 @@ private fun androidx.compose.foundation.layout.RowScope.ToolbarKey(
         Text(
             text = label,
             color = fg,
-            fontSize = 13.sp,
+            style = MaterialTheme.typography.labelMedium,
             fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
             fontFamily = FontFamily.Monospace
         )

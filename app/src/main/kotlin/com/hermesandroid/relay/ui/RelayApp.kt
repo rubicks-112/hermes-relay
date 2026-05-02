@@ -66,6 +66,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.hermesandroid.relay.ui.theme.purpleGlow
+import com.hermesandroid.relay.ui.theme.HermesNavy
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -754,7 +755,7 @@ fun RelayApp() {
             if (!isCompact && !isOnboarding && !voiceUiState.voiceMode) {
                 NavigationRail(
                     containerColor = if (isDarkTheme) {
-                        Color(0xFF1A1A2E).copy(alpha = 0.9f)
+                        HermesNavy.copy(alpha = 0.9f)
                     } else {
                         MaterialTheme.colorScheme.surface
                     },
@@ -850,7 +851,7 @@ fun RelayApp() {
                     if (isCompact && !isOnboarding && !isKeyboardVisible && !voiceUiState.voiceMode) {
                         NavigationBar(
                             containerColor = if (isDarkTheme) {
-                                Color(0xFF1A1A2E).copy(alpha = 0.9f)
+                                HermesNavy.copy(alpha = 0.9f)
                             } else {
                                 MaterialTheme.colorScheme.surface
                             }
@@ -1446,7 +1447,7 @@ fun RelayApp() {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFF1A1A2E)),
+                    .background(HermesNavy),
                 contentAlignment = Alignment.Center
             ) {
                 // Sphere fills background

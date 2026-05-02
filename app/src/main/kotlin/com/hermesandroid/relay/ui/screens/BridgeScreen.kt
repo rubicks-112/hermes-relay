@@ -67,6 +67,8 @@ import com.hermesandroid.relay.ui.components.UnattendedAccessRow
 // === END v0.4.1 unattended-access ===
 import com.hermesandroid.relay.viewmodel.BridgeViewModel
 import com.hermesandroid.relay.viewmodel.ConnectionViewModel
+import com.hermesandroid.relay.ui.theme.HermesSpacing
+import com.hermesandroid.relay.ui.theme.ShapeMedium
 import kotlinx.coroutines.launch
 
 /**
@@ -208,8 +210,8 @@ fun BridgeScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(horizontal = HermesSpacing.lg, vertical = HermesSpacing.lg),
+            verticalArrangement = Arrangement.spacedBy(HermesSpacing.md),
         ) {
             // Relay-not-connected banner. Bridge commands arrive over the
             // relay's WSS — when relay is Unpaired / Disconnected / URL
@@ -232,11 +234,11 @@ fun BridgeScreen(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer,
                     ),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = ShapeMedium,
                 ) {
                     Row(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.padding(HermesSpacing.lg),
+                        horizontalArrangement = Arrangement.spacedBy(HermesSpacing.md),
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Warning,
@@ -430,7 +432,7 @@ fun BridgeScreen(
                 onClear = { viewModel.clearActivityLog() }
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(HermesSpacing.lg))
         }
     }
 }
@@ -485,9 +487,9 @@ private fun OverlayPermissionNagCard(onTap: () -> Unit) {
         ),
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(HermesSpacing.lg),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(HermesSpacing.md),
         ) {
             Icon(
                 imageVector = Icons.Filled.Warning,
@@ -550,9 +552,9 @@ private fun TrustedActionsRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = HermesSpacing.lg, vertical = HermesSpacing.md),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(HermesSpacing.md),
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -679,7 +681,7 @@ private fun maybeOpenAppDetailsOnPermanentDenial(context: Context, permission: S
 @Composable
 private fun OverlayPermissionNagCardPreview() {
     MaterialTheme {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(HermesSpacing.lg)) {
             OverlayPermissionNagCard(onTap = {})
         }
     }
@@ -693,8 +695,8 @@ private fun BridgeScreenPreview() {
     // Individual components have their own full previews.
     MaterialTheme {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(HermesSpacing.lg),
+            verticalArrangement = Arrangement.spacedBy(HermesSpacing.md)
         ) {
             BridgeSafetySummaryCard(
                 settings = BridgeSafetySettings(),

@@ -60,6 +60,8 @@ import com.hermesandroid.relay.ui.components.TerminalSessionInfoSheet
 import com.hermesandroid.relay.ui.components.TerminalTabBar
 import com.hermesandroid.relay.ui.components.TerminalWebView
 import com.hermesandroid.relay.viewmodel.ConnectionViewModel
+import com.hermesandroid.relay.ui.theme.HermesSpacing
+import com.hermesandroid.relay.ui.theme.HermesIconSize
 import com.hermesandroid.relay.viewmodel.TerminalViewModel
 import org.json.JSONObject
 
@@ -152,9 +154,9 @@ fun TerminalScreen(
                 ConnectionStatusBadge(
                     isConnected = isConnected && (activeTab?.attached == true),
                     isConnecting = isConnecting || (activeTab?.attaching == true),
-                    modifier = Modifier.padding(end = 4.dp)
+                    modifier = Modifier.padding(end = HermesSpacing.xs)
                 )
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(HermesSpacing.xs))
                 IconButton(
                     onClick = {
                         showSearch = !showSearch
@@ -191,7 +193,7 @@ fun TerminalScreen(
                         contentDescription = "Reattach terminal"
                     )
                 }
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(HermesSpacing.sm))
             },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = MaterialTheme.colorScheme.surface
@@ -485,7 +487,7 @@ private fun StartSessionOverlay(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(HermesSpacing.lg),
             modifier = Modifier.padding(horizontal = 32.dp, vertical = 48.dp),
         ) {
             Box(
@@ -499,7 +501,7 @@ private fun StartSessionOverlay(
                     imageVector = Icons.Filled.Terminal,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(32.dp),
+                    modifier = Modifier.size(HermesIconSize.xl),
                 )
             }
 
@@ -524,7 +526,7 @@ private fun StartSessionOverlay(
                     textAlign = TextAlign.Center,
                 )
             }
-            Spacer(modifier = Modifier.size(4.dp))
+            Spacer(modifier = Modifier.size(HermesSpacing.xs))
             Button(
                 onClick = onStart,
                 enabled = isReady,
@@ -563,7 +565,7 @@ private fun TerminalOverlay(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(HermesSpacing.md),
             modifier = Modifier.padding(horizontal = 32.dp)
         ) {
             Box(

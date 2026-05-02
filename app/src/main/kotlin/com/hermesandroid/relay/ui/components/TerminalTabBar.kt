@@ -29,6 +29,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.hermesandroid.relay.ui.theme.HermesIconSize
+import com.hermesandroid.relay.ui.theme.ShapeSmall
 import com.hermesandroid.relay.viewmodel.TerminalViewModel
 
 /**
@@ -94,7 +96,7 @@ fun TerminalTabBar(
                 } else {
                     MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                 },
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(HermesIconSize.lg),
             )
         }
     }
@@ -120,7 +122,7 @@ private fun TerminalTabChip(
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
     }
-    val shape = RoundedCornerShape(8.dp)
+    val shape = ShapeSmall
     Row(
         modifier = Modifier
             .heightIn(min = 48.dp)
@@ -174,7 +176,7 @@ private fun TerminalTabChip(
                     imageVector = Icons.Filled.Close,
                     contentDescription = "Close tab ${tab.tabId}",
                     tint = fg,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(HermesIconSize.sm),
                 )
             }
         }

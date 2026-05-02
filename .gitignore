@@ -76,3 +76,4 @@ keystore.properties
 .smoke-relay.pid
 .smoke-relay.log
 .gitnexus
+graphify-out/

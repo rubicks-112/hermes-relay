@@ -85,6 +85,9 @@ import com.hermesandroid.relay.viewmodel.DestructiveCountdownState
 import com.hermesandroid.relay.viewmodel.InteractionMode
 import com.hermesandroid.relay.viewmodel.PermissionDeniedCallout
 import com.hermesandroid.relay.viewmodel.VoiceState
+import com.hermesandroid.relay.ui.theme.HermesSpacing
+import com.hermesandroid.relay.ui.theme.HermesIconSize
+import com.hermesandroid.relay.ui.theme.ShapeMedium
 import com.hermesandroid.relay.viewmodel.VoiceUiState
 import kotlinx.coroutines.flow.SharedFlow
 
@@ -162,7 +165,7 @@ fun VoiceModeOverlay(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .padding(horizontal = HermesSpacing.md, vertical = HermesSpacing.sm)
                 .align(Alignment.TopCenter),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
@@ -270,7 +273,7 @@ fun VoiceModeOverlay(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 64.dp, bottom = 160.dp, start = 24.dp, end = 24.dp),
+                .padding(top = 64.dp, bottom = 160.dp, start = HermesSpacing.xxl, end = HermesSpacing.xxl),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // Sphere — dominant share of the column. Compose's `weight()`
@@ -298,7 +301,7 @@ fun VoiceModeOverlay(
                 state = uiState.state,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 32.dp, vertical = 8.dp),
+                    .padding(horizontal = HermesSpacing.xxxl, vertical = HermesSpacing.sm),
             )
 
             Spacer(Modifier.height(8.dp))
@@ -314,7 +317,7 @@ fun VoiceModeOverlay(
                 countdown = uiState.destructiveCountdown,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 32.dp),
+                    .padding(horizontal = HermesSpacing.xxxl),
             )
 
             // v0.4.1 JIT permission-denied chip. Shows up when the most
@@ -329,10 +332,10 @@ fun VoiceModeOverlay(
                 onTap = onPermissionDeniedChipTap,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 32.dp, vertical = 4.dp),
+                    .padding(horizontal = HermesSpacing.xxxl, vertical = HermesSpacing.xs),
             )
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(HermesSpacing.xs))
 
             // Transcript area. Shows the last N chat messages in a compact
             // rolling list — this is the SINGLE source of truth for both
@@ -360,7 +363,7 @@ fun VoiceModeOverlay(
                             }
                             .nestedScroll(nestedScrollConnection)
                             .verticalScroll(transcriptScrollState)
-                            .padding(vertical = 12.dp),
+                            .padding(vertical = HermesSpacing.md),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         transcriptMessages.forEach { msg ->
@@ -399,16 +402,16 @@ fun VoiceModeOverlay(
             exit = fadeOut(),
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 64.dp, start = 16.dp, end = 16.dp)
+                .padding(top = 64.dp, start = HermesSpacing.lg, end = HermesSpacing.lg)
                 .semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Assertive },
         ) {
             Surface(
-                shape = RoundedCornerShape(12.dp),
+                shape = ShapeMedium,
                 color = MaterialTheme.colorScheme.errorContainer,
                 tonalElevation = 2.dp,
             ) {
                 Row(
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier.padding(HermesSpacing.md),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
@@ -427,9 +430,9 @@ fun VoiceModeOverlay(
                         Icon(
                             imageVector = Icons.Filled.Refresh,
                             contentDescription = null,
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(HermesIconSize.sm),
                         )
-                        Spacer(Modifier.size(4.dp))
+                        Spacer(Modifier.size(HermesSpacing.xs))
                         Text("Retry")
                     }
                 }
@@ -484,7 +487,7 @@ fun VoiceModeOverlay(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
-                .padding(bottom = 16.dp),
+                .padding(bottom = HermesSpacing.lg),
         )
     }
 }
@@ -515,8 +518,8 @@ private fun VoiceMicButton(
     // interrupts TTS; the old tertiary (green-ish) read as "playing" and
     // users didn't realize they could stop the agent.
     val containerColor = when (uiState.state) {
-        VoiceState.Listening -> Color(0xFFE53935)
-        VoiceState.Speaking -> Color(0xFFE53935)
+        VoiceState.Listening -> MaterialTheme.colorScheme.error
+        VoiceState.Speaking -> MaterialTheme.colorScheme.error
         VoiceState.Error -> MaterialTheme.colorScheme.errorContainer
         else -> MaterialTheme.colorScheme.primary
     }
@@ -556,7 +559,7 @@ private fun VoiceMicButton(
                 imageVector = icon,
                 contentDescription = "Voice mic",
                 tint = Color.White,
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(HermesIconSize.xl),
             )
         }
     }
@@ -637,7 +640,7 @@ private fun CompactTranscriptRow(message: ChatMessage) {
             style = MaterialTheme.typography.labelSmall,
             color = captionColor,
         )
-        Spacer(Modifier.height(2.dp))
+        Spacer(Modifier.height(HermesSpacing.xxs))
         when {
             isVoiceActionBubble -> MarkdownContent(
                 content = message.content,
@@ -724,7 +727,7 @@ private fun DestructiveCountdownRow(
                 color = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier.fillMaxWidth(),
             )
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(HermesSpacing.xs))
             LinearProgressIndicator(
                 progress = { progress.value.coerceIn(0f, 1f) },
                 modifier = Modifier.fillMaxWidth(),
@@ -769,7 +772,7 @@ private fun PermissionDeniedChip(
         val current = callout ?: lastShown
         if (current != null) {
             Surface(
-                shape = RoundedCornerShape(12.dp),
+                shape = ShapeMedium,
                 color = MaterialTheme.colorScheme.errorContainer,
                 contentColor = MaterialTheme.colorScheme.onErrorContainer,
                 modifier = Modifier
@@ -777,7 +780,7 @@ private fun PermissionDeniedChip(
                     .clickable { onTap(current) },
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    modifier = Modifier.padding(horizontal = HermesSpacing.lg, vertical = HermesSpacing.md),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {

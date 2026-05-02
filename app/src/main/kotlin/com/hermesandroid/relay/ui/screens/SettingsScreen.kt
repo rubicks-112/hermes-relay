@@ -64,6 +64,10 @@ import com.hermesandroid.relay.network.ConnectionState
 import com.hermesandroid.relay.ui.components.AgentInfoSheet
 import com.hermesandroid.relay.ui.components.ProfileInspectorCard
 import com.hermesandroid.relay.ui.theme.gradientBorder
+import com.hermesandroid.relay.ui.theme.HermesSpacing
+import com.hermesandroid.relay.ui.theme.HermesIconSize
+import com.hermesandroid.relay.ui.theme.HermesAvatarSize
+import com.hermesandroid.relay.ui.theme.ShapeMedium
 import com.hermesandroid.relay.viewmodel.ChatViewModel
 import com.hermesandroid.relay.viewmodel.ConnectionViewModel
 
@@ -178,7 +182,7 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 16.dp)
+                .padding(horizontal = HermesSpacing.lg, vertical = HermesSpacing.lg)
                 .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -395,7 +399,7 @@ internal fun ActiveAgentCard(
         modifier = Modifier
             .fillMaxWidth()
             .gradientBorder(
-                shape = RoundedCornerShape(12.dp),
+                shape = ShapeMedium,
                 isDarkTheme = isDarkTheme,
             ),
         colors = CardDefaults.cardColors(
@@ -412,12 +416,12 @@ internal fun ActiveAgentCard(
             // Avatar — small 32dp variant of the 40dp ChatScreen top-bar
             // avatar. Ring width shrinks to 1.5dp so the overall footprint
             // stays at 32dp without the inner Surface collapsing.
-            val ringWidth = if (isCustomized) 1.5.dp else 0.dp
-            val innerSize = 32.dp - (ringWidth * 2)
-            Box(modifier = Modifier.size(32.dp)) {
+            val ringWidth = if (isCustomized) HermesAvatarSize.ringWidth else 0.dp
+            val innerSize = HermesAvatarSize.sm - (ringWidth * 2)
+            Box(modifier = Modifier.size(HermesAvatarSize.sm)) {
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(HermesAvatarSize.sm)
                         .then(
                             if (isCustomized) {
                                 Modifier.border(
@@ -541,7 +545,7 @@ private fun SettingsCategoryRow(
                 imageVector = icon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(HermesIconSize.md),
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
