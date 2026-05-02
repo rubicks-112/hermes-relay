@@ -837,14 +837,41 @@ fun RelayApp() {
             }
         ) { innerPadding ->
             CompositionLocalProvider(LocalSnackbarHost provides snackbarHostState) {
+            val bottomNavRoutes = setOf(
+                Screen.Chat.route,
+                Screen.Terminal.route,
+                Screen.Bridge.route,
+                Screen.Settings.route,
+            )
+
             NavHost(
                 navController = navController,
                 startDestination = startDestination,
                 modifier = Modifier.padding(innerPadding),
-                enterTransition = { slideInHorizontally { it } + fadeIn() },
-                exitTransition = { slideOutHorizontally { -it } + fadeOut() },
-                popEnterTransition = { slideInHorizontally { -it } + fadeIn() },
-                popExitTransition = { slideOutHorizontally { it } + fadeOut() },
+                enterTransition = {
+                    val isTabSwitch = bottomNavRoutes.contains(initialState.destination.route) &&
+                        bottomNavRoutes.contains(targetState.destination.route)
+                    if (isTabSwitch) {
+                        fadeIn(tween(250))
+                    } else {
+                        slideInHorizontally(tween(300)) { it } + fadeIn(tween(300))
+                    }
+                },
+                exitTransition = {
+                    val isTabSwitch = bottomNavRoutes.contains(initialState.destination.route) &&
+                        bottomNavRoutes.contains(targetState.destination.route)
+                    if (isTabSwitch) {
+                        fadeOut(tween(250))
+                    } else {
+                        slideOutHorizontally(tween(300)) { -it } + fadeOut(tween(300))
+                    }
+                },
+                popEnterTransition = {
+                    slideInHorizontally(tween(300)) { -it } + fadeIn(tween(300))
+                },
+                popExitTransition = {
+                    slideOutHorizontally(tween(300)) { it } + fadeOut(tween(300))
+                },
             ) {
                 composable(Screen.Onboarding.route) {
                     // The wizard inside OnboardingScreen now owns credential

@@ -63,6 +63,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -92,6 +93,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.hermesandroid.relay.R
 import com.hermesandroid.relay.ui.theme.purpleGlow
 import com.hermesandroid.relay.ui.theme.radialNavyBackground
@@ -713,15 +715,19 @@ fun ChatScreen(
         val isDarkTheme = isSystemInDarkTheme()
 
         Box(modifier = Modifier.fillMaxSize()) {
+        val topAppBarState = rememberTopAppBarState()
+        val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(topAppBarState)
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .radialNavyBackground(isDarkTheme = isDarkTheme)
                 .imePadding()
                 .alpha(chatAlpha)
+                .nestedScroll(scrollBehavior.nestedScrollConnection)
         ) {
             // Top bar — messaging app style with avatar, name, model subtitle
             TopAppBar(
+                scrollBehavior = scrollBehavior,
                 navigationIcon = {
                     IconButton(onClick = { scope.launch { drawerState.open() } }) {
                         Icon(Icons.Filled.Menu, contentDescription = "Sessions")
