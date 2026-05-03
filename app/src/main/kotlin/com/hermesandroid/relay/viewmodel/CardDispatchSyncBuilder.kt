@@ -82,7 +82,7 @@ object CardDispatchSyncBuilder {
         idGenerator: () -> String = { java.util.UUID.randomUUID().toString() },
     ): JsonArray = buildJsonArray {
         for (msg in history) {
-            if (msg.cards.isEmpty() || msg.cardDispatches.isEmpty()) continue
+            if (msg.cardDispatches.isEmpty()) continue
 
             // Index cards by their resolved cardKey so the dispatch
             // lookup is O(1). Mirrors the key formula in MessageBubble.kt
