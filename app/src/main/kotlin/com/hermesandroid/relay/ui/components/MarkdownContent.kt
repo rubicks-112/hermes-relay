@@ -20,6 +20,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.hermesandroid.relay.ui.theme.HermesIconSize
+import com.hermesandroid.relay.ui.theme.SuccessGreen
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -121,8 +123,8 @@ private fun CodeBlockWithCopyButton(
             Icon(
                 imageVector = if (copied) Icons.Filled.Check else Icons.Filled.ContentCopy,
                 contentDescription = if (copied) "Copied" else "Copy code",
-                modifier = Modifier.size(14.dp),
-                tint = if (copied) Color(0xFF4CAF50)
+                modifier = Modifier.size(HermesIconSize.xs),
+                tint = if (copied) SuccessGreen
                 else MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

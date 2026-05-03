@@ -50,6 +50,11 @@ import com.hermesandroid.relay.data.ChatMessage
 import com.hermesandroid.relay.data.HermesCardAction
 import com.hermesandroid.relay.data.MessageRole
 import com.hermesandroid.relay.data.MessageStatus
+import com.hermesandroid.relay.ui.theme.HermesSpacing
+import com.hermesandroid.relay.ui.theme.HermesIconSize
+import com.hermesandroid.relay.ui.theme.ShapeSmall
+import com.hermesandroid.relay.ui.theme.ShapeMedium
+import com.hermesandroid.relay.ui.theme.ShapeLarge
 import com.hermesandroid.relay.ui.theme.leftEdgeGlow
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -141,7 +146,7 @@ fun MessageBubble(
     val bubbleShape = when (message.role) {
         MessageRole.USER -> RoundedCornerShape(topStart, topEnd, bottomEnd, bottomStart)
         MessageRole.ASSISTANT -> RoundedCornerShape(topStart, topEnd, bottomEnd, bottomStart)
-        MessageRole.SYSTEM -> RoundedCornerShape(12.dp)
+        MessageRole.SYSTEM -> ShapeMedium
     }
 
     val alignment = if (isUser) Alignment.End else Alignment.Start
@@ -159,7 +164,7 @@ fun MessageBubble(
                 text = message.agentName,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(bottom = 2.dp, start = 4.dp)
+                modifier = Modifier.padding(bottom = HermesSpacing.xxs, start = HermesSpacing.xs)
             )
         }
 
@@ -170,7 +175,7 @@ fun MessageBubble(
                 isStreaming = message.isThinkingStreaming,
                 modifier = Modifier
                     .widthIn(max = maxBubbleWidth)
-                    .padding(bottom = 4.dp)
+                    .padding(bottom = HermesSpacing.xs)
             )
         }
 
@@ -188,7 +193,7 @@ fun MessageBubble(
             if (isActionBubble) {
                 Box(
                     modifier = Modifier
-                        .padding(top = 8.dp, bottom = 8.dp, end = 6.dp)
+                        .padding(top = HermesSpacing.sm, bottom = HermesSpacing.sm, end = 6.dp)
                         .width(3.dp)
                         .fillMaxHeight()
                         .clip(CircleShape)
@@ -213,7 +218,7 @@ fun MessageBubble(
                 )
                 .semantics { contentDescription = a11yDescription }
         ) {
-            Column(modifier = Modifier.padding(12.dp)) {
+            Column(modifier = Modifier.padding(HermesSpacing.md)) {
                 SelectionContainer {
                     if (isUser || isSystem) {
                         // Plain text for user and system messages
@@ -241,7 +246,7 @@ fun MessageBubble(
                 // so a reload-from-history doesn't lose "I already chose X"
                 // state tracked in [ChatMessage.cardDispatches].
                 if (!isUser && !isSystem && message.cards.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(HermesSpacing.xs + HermesSpacing.xxs))
                     message.cards.forEachIndexed { index, card ->
                         val cardKey = card.id ?: "idx:$index"
                         HermesCardBubble(
@@ -252,7 +257,7 @@ fun MessageBubble(
                                 onCardAction(message.id, key, action)
                             },
                             maxWidth = maxBubbleWidth - 24.dp,
-                            modifier = Modifier.padding(vertical = 2.dp),
+                            modifier = Modifier.padding(vertical = HermesSpacing.xxs),
                         )
                     }
                 }
@@ -264,14 +269,14 @@ fun MessageBubble(
                 // MEDIA markers) cycle through LOADING → LOADED / FAILED as the
                 // background fetch progresses.
                 if (message.attachments.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(HermesSpacing.xs))
                     message.attachments.forEachIndexed { index, attachment ->
                         InboundAttachmentCard(
                             attachment = attachment,
                             onRetry = { onAttachmentRetry(message.id, index) },
                             onManualFetch = { onAttachmentManualFetch(message.id, index) },
                             maxWidth = maxBubbleWidth - 24.dp,
-                            modifier = Modifier.padding(vertical = 2.dp)
+                            modifier = Modifier.padding(vertical = HermesSpacing.xxs)
                         )
                     }
                 }
@@ -286,10 +291,10 @@ fun MessageBubble(
 
                 // Timestamp + status / actions
                 if (isLastInGroup) {
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(HermesSpacing.xxs))
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(HermesSpacing.xs)
                     ) {
                         Text(
                             text = timeFormat.format(Date(message.timestamp)),
@@ -307,31 +312,31 @@ fun MessageBubble(
                                     icon,
                                     contentDescription = message.status.name,
                                     tint = tint,
-                                    modifier = Modifier.size(14.dp)
+                                    modifier = Modifier.size(HermesIconSize.xs)
                                 )
                             }
                         }
                         if (isUser) {
                             IconButton(
                                 onClick = { onShareMessage(message.content) },
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(HermesIconSize.lg)
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.Share,
                                     contentDescription = "Share",
-                                    modifier = Modifier.size(14.dp),
+                                    modifier = Modifier.size(HermesIconSize.xs),
                                     tint = textColor.copy(alpha = 0.5f)
                                 )
                             }
                             if (message.status == MessageStatus.FAILED) {
                                 IconButton(
                                     onClick = { onRetryMessage(message.content) },
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size(HermesIconSize.lg)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Filled.Refresh,
                                         contentDescription = "Retry",
-                                        modifier = Modifier.size(14.dp),
+                                        modifier = Modifier.size(HermesIconSize.xs),
                                         tint = MaterialTheme.colorScheme.error
                                     )
                                 }

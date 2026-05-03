@@ -96,6 +96,16 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.hermesandroid.relay.R
+import com.hermesandroid.relay.ui.theme.HermesSpacing
+import com.hermesandroid.relay.ui.theme.HermesIconSize
+import com.hermesandroid.relay.ui.theme.HermesAvatarSize
+import com.hermesandroid.relay.ui.theme.HermesShapes
+import com.hermesandroid.relay.ui.theme.ShapeSmall
+import com.hermesandroid.relay.ui.theme.ShapeMedium
+import com.hermesandroid.relay.ui.theme.ShapeLarge
+import com.hermesandroid.relay.ui.theme.ShapeXLarge
+import com.hermesandroid.relay.ui.theme.SuccessGreen
+import com.hermesandroid.relay.ui.theme.WarningAmber
 import com.hermesandroid.relay.ui.theme.purpleGlow
 import com.hermesandroid.relay.ui.theme.radialNavyBackground
 import com.hermesandroid.relay.network.ChatMode
@@ -742,8 +752,8 @@ fun ChatScreen(
                         else -> "Disconnected"
                     }
                     val statusColor = when {
-                        apiReachable -> Color(0xFF4CAF50)
-                        isConnecting -> Color(0xFFFFA726)
+                        apiReachable -> SuccessGreen
+                        isConnecting -> WarningAmber
                         else -> MaterialTheme.colorScheme.error
                     }
 
@@ -796,12 +806,12 @@ fun ChatScreen(
                         // defaults. Ring sits OUTSIDE the avatar circle; the
                         // inner Surface is downsized by ring width so the
                         // overall footprint stays at 40dp.
-                        val ringWidth = if (customized) 2.dp else 0.dp
-                        val innerSize = 40.dp - (ringWidth * 2)
-                        Box(modifier = Modifier.size(40.dp)) {
+                        val ringWidth = if (customized) HermesAvatarSize.ringWidth else 0.dp
+                        val innerSize = HermesAvatarSize.md - (ringWidth * 2)
+                        Box(modifier = Modifier.size(HermesAvatarSize.md)) {
                             Box(
                                 modifier = Modifier
-                                    .size(40.dp)
+                                    .size(HermesAvatarSize.md)
                                     .then(
                                         if (customized) {
                                             Modifier.border(
@@ -882,10 +892,10 @@ fun ChatScreen(
                     val activeEndpoint by connectionViewModel.activeEndpoint.collectAsState()
                     activeEndpoint?.let { ep ->
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
+                            shape = HermesShapes.small,
                             color = MaterialTheme.colorScheme.secondaryContainer,
                             modifier = Modifier
-                                .padding(end = 4.dp)
+                                .padding(end = HermesSpacing.xs)
                                 .clickable { onNavigateToConnections() },
                         ) {
                             Text(
@@ -893,8 +903,8 @@ fun ChatScreen(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer,
                                 modifier = Modifier.padding(
-                                    horizontal = 8.dp,
-                                    vertical = 4.dp,
+                                    horizontal = HermesSpacing.sm,
+                                    vertical = HermesSpacing.xs,
                                 ),
                             )
                         }
@@ -936,10 +946,10 @@ fun ChatScreen(
                     Icon(
                         Icons.Filled.WifiOff,
                         contentDescription = "No internet",
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(HermesIconSize.sm),
                         tint = MaterialTheme.colorScheme.onErrorContainer
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(HermesSpacing.sm))
                     Text(
                         "No internet connection",
                         color = MaterialTheme.colorScheme.onErrorContainer,
@@ -953,7 +963,7 @@ fun ChatScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                        .padding(horizontal = HermesSpacing.lg, vertical = HermesSpacing.xs),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -979,12 +989,12 @@ fun ChatScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(8.dp),
+                        .padding(HermesSpacing.sm),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                    Spacer(modifier = Modifier.size(8.dp))
+                    CircularProgressIndicator(modifier = Modifier.size(HermesIconSize.sm), strokeWidth = 2.dp)
+                    Spacer(modifier = Modifier.size(HermesSpacing.sm))
                     Text(
                         text = "Loading messages...",
                         style = MaterialTheme.typography.bodySmall,
@@ -1021,7 +1031,7 @@ fun ChatScreen(
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(horizontal = 32.dp)
+                        modifier = Modifier.padding(horizontal = HermesSpacing.xxxl)
                     ) {
                         Spacer(modifier = Modifier.weight(0.15f))
 
@@ -1041,7 +1051,7 @@ fun ChatScreen(
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(HermesSpacing.sm))
                         }
 
                         Text(
@@ -1059,7 +1069,7 @@ fun ChatScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(HermesSpacing.xl))
 
                         // Suggestion chips
                         FlowRow(
@@ -1224,7 +1234,7 @@ fun ChatScreen(
                             item {
                                 StreamingDots(
                                     modifier = Modifier
-                                        .padding(start = 12.dp, top = 4.dp)
+                                        .padding(start = HermesSpacing.md, top = HermesSpacing.xs)
                                         .animateItem()
                                 )
                             }
@@ -1240,7 +1250,7 @@ fun ChatScreen(
                         exit = fadeOut() + slideOutVertically { it },
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
-                            .padding(16.dp)
+                            .padding(HermesSpacing.lg)
                     ) {
                         SmallFloatingActionButton(
                             onClick = {
@@ -1275,7 +1285,7 @@ fun ChatScreen(
                         hostState = snackbarHostState,
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
-                            .padding(bottom = 8.dp)
+                            .padding(bottom = HermesSpacing.sm)
                     )
                 }
             }
@@ -1288,7 +1298,7 @@ fun ChatScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp),
+                            .padding(horizontal = HermesSpacing.xl),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
@@ -1315,17 +1325,17 @@ fun ChatScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState())
-                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                            .padding(horizontal = HermesSpacing.lg, vertical = HermesSpacing.xs),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         pendingAttachments.forEachIndexed { index, attachment ->
                             Surface(
-                                shape = RoundedCornerShape(8.dp),
+                                shape = HermesShapes.small,
                                 tonalElevation = 2.dp,
                                 modifier = Modifier.height(56.dp)
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(start = 8.dp, end = 4.dp),
+                                    modifier = Modifier.padding(start = HermesSpacing.sm, end = HermesSpacing.xs),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
@@ -1349,10 +1359,10 @@ fun ChatScreen(
                                                     .clip(RoundedCornerShape(4.dp))
                                             )
                                         } else {
-                                            Icon(Icons.Filled.Description, contentDescription = null, modifier = Modifier.size(24.dp))
+                                            Icon(Icons.Filled.Description, contentDescription = null, modifier = Modifier.size(HermesIconSize.lg))
                                         }
                                     } else {
-                                        Icon(Icons.Filled.Description, contentDescription = null, modifier = Modifier.size(24.dp))
+                                        Icon(Icons.Filled.Description, contentDescription = null, modifier = Modifier.size(HermesIconSize.lg))
                                     }
                                     Column(modifier = Modifier.widthIn(max = 100.dp)) {
                                         Text(
@@ -1369,12 +1379,12 @@ fun ChatScreen(
                                     }
                                     IconButton(
                                         onClick = { chatViewModel.removeAttachment(index) },
-                                        modifier = Modifier.size(24.dp)
+                                        modifier = Modifier.size(HermesIconSize.lg)
                                     ) {
                                         Icon(
                                             Icons.Filled.Close,
                                             contentDescription = "Remove",
-                                            modifier = Modifier.size(16.dp)
+                                            modifier = Modifier.size(HermesIconSize.sm)
                                         )
                                     }
                                 }
@@ -1388,13 +1398,13 @@ fun ChatScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .navigationBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(horizontal = HermesSpacing.lg, vertical = HermesSpacing.sm),
                     verticalAlignment = Alignment.Bottom
                 ) {
                     // Attach file button
                     IconButton(
                         onClick = { filePickerLauncher.launch(arrayOf("*/*")) },
-                        modifier = Modifier.padding(bottom = 4.dp)
+                        modifier = Modifier.padding(bottom = HermesSpacing.xs)
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Add,
@@ -1406,7 +1416,7 @@ fun ChatScreen(
                     // Command palette button
                     IconButton(
                         onClick = { showCommandPalette = true },
-                        modifier = Modifier.padding(bottom = 4.dp)
+                        modifier = Modifier.padding(bottom = HermesSpacing.xs)
                     ) {
                         Text(
                             text = "/",
@@ -1552,7 +1562,7 @@ fun ChatScreen(
                     visible = showAutocomplete,
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(horizontal = 16.dp)
+                        .padding(horizontal = HermesSpacing.lg)
                 ) {
                     InlineAutocomplete(
                         commands = filteredCommands,
@@ -1577,12 +1587,12 @@ fun ChatScreen(
                 .padding(top = 80.dp, start = 16.dp, end = 16.dp),
         ) {
             Surface(
-                shape = RoundedCornerShape(12.dp),
+                shape = ShapeMedium,
                 color = MaterialTheme.colorScheme.errorContainer,
                 tonalElevation = 2.dp,
             ) {
                 Column(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    modifier = Modifier.padding(horizontal = HermesSpacing.md, vertical = HermesSpacing.sm),
                 ) {
                     Text(
                         text = "Microphone permission needed",
@@ -1732,14 +1742,14 @@ private fun DateSeparator(timestamp: Long) {
         horizontalArrangement = Arrangement.Center
     ) {
         Surface(
-            shape = RoundedCornerShape(12.dp),
+            shape = ShapeMedium,
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 2.dp,
             shadowElevation = 2.dp
         ) {
             Text(
                 text = label,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                modifier = Modifier.padding(horizontal = HermesSpacing.md, vertical = HermesSpacing.xs),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

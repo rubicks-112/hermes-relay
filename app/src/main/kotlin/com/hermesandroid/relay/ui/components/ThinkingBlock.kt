@@ -30,6 +30,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.hermesandroid.relay.ui.theme.HermesSpacing
+import com.hermesandroid.relay.ui.theme.HermesIconSize
 
 @Composable
 fun ThinkingBlock(
@@ -45,7 +47,7 @@ fun ThinkingBlock(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         )
     ) {
-        Column(modifier = Modifier.padding(8.dp)) {
+        Column(modifier = Modifier.padding(HermesSpacing.sm)) {
             // Header row
             Row(
                 modifier = Modifier
@@ -57,7 +59,7 @@ fun ThinkingBlock(
                 Icon(
                     imageVector = Icons.Filled.Psychology,
                     contentDescription = "Thinking",
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(HermesIconSize.sm),
                     tint = MaterialTheme.colorScheme.tertiary
                 )
                 Spacer(modifier = Modifier.width(6.dp))
@@ -70,7 +72,7 @@ fun ThinkingBlock(
                 Icon(
                     imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
                     contentDescription = if (expanded) "Collapse" else "Expand",
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(HermesIconSize.sm),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

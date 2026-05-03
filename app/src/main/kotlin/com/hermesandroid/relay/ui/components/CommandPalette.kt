@@ -49,6 +49,11 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.hermesandroid.relay.ui.theme.HermesSpacing
+import com.hermesandroid.relay.ui.theme.HermesIconSize
+import com.hermesandroid.relay.ui.theme.ShapeSmall
+import com.hermesandroid.relay.ui.theme.ShapeMedium
+import com.hermesandroid.relay.ui.theme.ShapeXLarge
 
 /**
  * A slash command entry — built-in, personality, or server skill.
@@ -107,7 +112,7 @@ fun CommandPalette(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+        shape = ShapeXLarge
     ) {
         val focusRequester = remember { FocusRequester() }
         val keyboardController = LocalSoftwareKeyboardController.current
@@ -127,7 +132,7 @@ fun CommandPalette(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = HermesSpacing.lg),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -142,7 +147,7 @@ fun CommandPalette(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(HermesSpacing.sm))
 
             // Search bar
             OutlinedTextField(
@@ -150,14 +155,14 @@ fun CommandPalette(
                 onValueChange = { searchQuery = it },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = HermesSpacing.lg)
                     .focusRequester(focusRequester),
                 placeholder = { Text("Search commands...") },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Filled.Search,
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(HermesIconSize.md)
                     )
                 },
                 trailingIcon = {
@@ -166,16 +171,16 @@ fun CommandPalette(
                             Icon(
                                 imageVector = Icons.Filled.Close,
                                 contentDescription = "Clear search",
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(HermesIconSize.md)
                             )
                         }
                     }
                 },
                 singleLine = true,
-                shape = RoundedCornerShape(12.dp)
+                shape = ShapeMedium
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(HermesSpacing.sm))
 
             // Category filter chips with expand/collapse
             Column(
@@ -186,7 +191,7 @@ fun CommandPalette(
                 FlowRow(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
+                        .padding(horizontal = HermesSpacing.lg),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     maxLines = if (categoriesExpanded) Int.MAX_VALUE else 2,
@@ -223,7 +228,7 @@ fun CommandPalette(
                 if (categories.size > 6) {
                     TextButton(
                         onClick = { categoriesExpanded = !categoriesExpanded },
-                        modifier = Modifier.padding(horizontal = 8.dp)
+                        modifier = Modifier.padding(horizontal = HermesSpacing.sm)
                     ) {
                         Text(
                             text = if (categoriesExpanded) "Show less"
@@ -234,7 +239,7 @@ fun CommandPalette(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(HermesSpacing.sm))
             HorizontalDivider()
 
             // Command list grouped by category
@@ -249,8 +254,8 @@ fun CommandPalette(
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(
-                                start = 16.dp, end = 16.dp,
-                                top = 12.dp, bottom = 4.dp
+                                start = HermesSpacing.lg, end = HermesSpacing.lg,
+                                top = HermesSpacing.md, bottom = HermesSpacing.xs
                             )
                         )
                     }
@@ -302,7 +307,7 @@ fun CommandRow(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = if (compact) 8.dp else 10.dp)
+            .padding(horizontal = HermesSpacing.lg, vertical = if (compact) HermesSpacing.sm else 10.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically
@@ -315,14 +320,14 @@ fun CommandRow(
             if (!compact && command.category != "built-in" && command.category != "personality") {
                 Spacer(modifier = Modifier.width(8.dp))
                 Surface(
-                    shape = RoundedCornerShape(4.dp),
+                    shape = ShapeSmall,
                     color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     Text(
                         text = command.category,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = HermesSpacing.xxs)
                     )
                 }
             }
@@ -333,7 +338,7 @@ fun CommandRow(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = if (compact) 1 else 2,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 2.dp)
+            modifier = Modifier.padding(top = HermesSpacing.xxs)
         )
     }
 }
@@ -350,7 +355,7 @@ fun InlineAutocomplete(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = ShapeMedium,
         shadowElevation = 4.dp,
         tonalElevation = 2.dp
     ) {
@@ -368,7 +373,7 @@ fun InlineAutocomplete(
                 )
                 if (cmd != commands.last()) {
                     HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 16.dp),
+                        modifier = Modifier.padding(horizontal = HermesSpacing.lg),
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                     )
                 }
